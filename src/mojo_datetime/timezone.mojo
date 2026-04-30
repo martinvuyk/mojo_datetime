@@ -64,6 +64,9 @@ struct TimeZone[zone_info_type: UTCZoneInfo = ZoneInfo](
         Args:
             tz_str: The [`IANA TimeZone identifier`](
                 https://en.wikipedia.org/wiki/List_of_tz_database_time_zones).
+
+        Raises:
+            When a time zone string wasn't found in the default zone info dict.
         """
 
         var res = global_constant[gregorian_zoneinfo]().get(tz_str)

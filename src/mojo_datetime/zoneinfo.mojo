@@ -77,6 +77,12 @@ struct Offset(Defaultable, Equatable, TrivialRegisterPassable, Writable):
             iso_tzd_std: String with the ISO8601 TZD
                 {`±hh:mm`, `±hhmm`, `±hh`} or a literal "Z" character.
 
+        Raises:
+            When the parsing fails.
+
+        Returns:
+            An offset and the amount of bytes read.
+
         Notes:
             Using the `±hh` format is ambiguous and is not recommended unless
             it is at the end of the string, otherwise this implementation will
@@ -168,6 +174,9 @@ struct Offset(Defaultable, Equatable, TrivialRegisterPassable, Writable):
 
         Args:
             dt: The naive datetime.
+
+        Returns:
+            The resulting datetime.
         """
         if not self.is_east_utc:
             return dt.add(
@@ -184,6 +193,9 @@ struct Offset(Defaultable, Equatable, TrivialRegisterPassable, Writable):
 
         Args:
             dt: The naive datetime.
+
+        Returns:
+            The resulting datetime.
         """
         return (-self).local_to_utc(dt)
 
@@ -326,6 +338,9 @@ struct TzDT(Equatable, TrivialRegisterPassable, Writable):
 
 
 trait UTCZoneInfo(Defaultable, Equatable, TrivialRegisterPassable):
+    """A trait that defines what a struct containing zone info should look
+    like."""
+
     def offset_at_local_time(self, dt: _TzNaiveDateTime) -> Offset:
         """Return the UTC offset for the `TimeZone` at the given date.
 

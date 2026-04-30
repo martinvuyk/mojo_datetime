@@ -29,7 +29,8 @@ if [[ $# -gt 0 ]]; then
 fi
 TEST_PATH=$( realpath ${TEST_PATH} )
 
-# Run the tests
+echo "Running the tests"
 for f in $( find $TEST_PATH -name '*.mojo' ); do
-  mojo run -D ASSERT=all $f
+  mojo run -D ASSERT=all $f &
 done
+wait

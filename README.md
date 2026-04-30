@@ -1,11 +1,15 @@
-# A flexible Mojo datetime implementation
+# mojo_datetime
+
+A flexible Mojo datetime implementation.
+
+Fully Mojo native, no external dependencies.
 
 ## How to Install
 
 Clone the repo and run the package script
 
 ```bash
-pixi run build
+pixi run package
 ```
 
 The package will be under `./build/mojo_datetime.mojopkg`
@@ -15,7 +19,7 @@ The package will be under `./build/mojo_datetime.mojopkg`
 Test an entire directory or subdirectory or specific file
 
 ```bash
-pixi run test
+pixi run tests
 ```
 
 ## About the library

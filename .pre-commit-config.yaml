@@ -1,0 +1,17 @@
+repos:
+  - repo: local
+    hooks:
+      - id: format
+        name: format
+        entry: pixi run format
+        language: system
+        files: '^.*\.mojo$'
+        stages: [pre-commit]
+
+      - id: lint_docstrings
+        name: lint_docstrings
+        entry: pixi run lint_docs
+        language: system
+        files: '^src/mojo_datetime/.*\.mojo$'
+        stages: [pre-commit]
+        pass_filenames: false

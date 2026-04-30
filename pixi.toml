@@ -1,15 +1,38 @@
 [workspace]
-authors = ["martinvuyk <martin.vuyklop@gmail.com>"]
+authors = ["martinvuyk"]
 channels = ["https://conda.modular.com/max-nightly", "conda-forge"]
+preview = ["pixi-build"]
 name = "mojo_datetime"
 platforms = ["osx-arm64", "linux-aarch64", "linux-64"]
 version = "0.1.0"
+license = "Apache-2.0 WITH LLVM-exception"
+license-file = "LICENSE"
+readme = "README.md"
+homepage = "https://github.com/martinvuyk/mojo_datetime"
+repository = "https://github.com/martinvuyk/mojo_datetime"
 
 [tasks]
 format = { cmd = "mojo format ./src" }
-build = { cmd = "./scripts/package-lib.sh", depends-on = ["format"] }
-tests = { cmd = "./scripts/run_tests.sh", depends-on = ["build"]}
+package = { cmd = "./scripts/package-lib.sh", depends-on = ["format"] }
+tests = { cmd = "./scripts/run_tests.sh", depends-on = ["package"]}
+lint_docs = { cmd = "mojo doc --Werror --diagnose-missing-doc-strings -o /dev/null ./src/mojo_datetime" }
+upgrade = { cmd = "pixi update && pixi upgrade && pixi install"}
 
 [dependencies]
-mojo = ">=1.0.0b1.dev2026042817,<2"
-max = ">=26.3.0.dev2026042817,<27"
+mojo = ">=1.0.0b1.dev2026043006,<2"
+
+[package]
+name = "mojo_datetime"
+version = "0.1.0"
+
+[package.build]
+backend = { name = "pixi-build-mojo", version = "0.1.*" }
+
+[package.host-dependencies]
+mojo-compiler = ">=1.0.0b1.dev2026043006,<2"
+
+[package.build-dependencies]
+mojo-compiler = ">=1.0.0b1.dev2026043006,<2"
+
+[package.run-dependencies]
+mojo-compiler = ">=1.0.0b1.dev2026043006,<2"

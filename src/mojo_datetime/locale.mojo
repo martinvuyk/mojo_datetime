@@ -31,7 +31,7 @@ from ._tz_naive_datetime import _TzNaiveDateTime
 # ===----------------------------------------------------------------------=== #
 
 
-struct FormatCodes(Equatable):
+struct FormatCode(Equatable):
     """The supported format codes. Based on the 1989 C standard, with some
     caveats.
 
@@ -97,6 +97,11 @@ struct FormatCodes(Equatable):
     """The raw UTF-8 byte value."""
 
     def __init__(out self, value: StringLiteral):
+        """Construct a `FormatCode` from a string literal.
+
+        Args:
+            value: The value.
+        """
         comptime val = type_of(value)()
         comptime assert 1 <= val.byte_length() <= 2
         comptime if val.byte_length() == 1:
@@ -233,8 +238,14 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (day_of_week, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         ...
 
@@ -259,8 +270,14 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (day_of_week, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         ...
 
@@ -285,8 +302,14 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (month, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         ...
 
@@ -311,8 +334,14 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (month, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         ...
 
@@ -337,8 +366,14 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (is_pm, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         ...
 
@@ -437,6 +472,9 @@ struct LibCLocale(DTLocale):
 
         Args:
             locale_name: The string name of the locale.
+
+        Raises:
+            When failing to instantiate the locale.
         """
         var null_ptr = Self._ptr()
         var name = locale_name.as_c_string_slice()
@@ -521,8 +559,14 @@ struct LibCLocale(DTLocale):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (day_of_week, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         comptime for i in range(7):
             comptime day = _posix_days[calendar][i]
@@ -560,8 +604,14 @@ struct LibCLocale(DTLocale):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (day_of_week, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         comptime for i in range(7):
             comptime day = _posix_days[calendar][i]
@@ -592,8 +642,14 @@ struct LibCLocale(DTLocale):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (month, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         for i in range(calendar.max_month):
             var mon_str = self._get_langinfo(_ABMON_1 + Int32(i))
@@ -623,8 +679,14 @@ struct LibCLocale(DTLocale):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (month, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         for i in range(calendar.max_month):
             var mon_str = self._get_langinfo(_MON_1 + Int32(i))
@@ -656,8 +718,14 @@ struct LibCLocale(DTLocale):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (is_pm, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         var am_str = self._get_langinfo(_AM_STR)
         if read_from.startswith(am_str):
@@ -791,8 +859,14 @@ trait NativeDTLocale(DTLocale):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (day_of_week, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         comptime for i in range(7):
             comptime dow_str = Self.day_of_week_names_short[i]
@@ -832,8 +906,14 @@ trait NativeDTLocale(DTLocale):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (day_of_week, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         comptime for i in range(7):
             comptime dow_str = Self.day_of_week_names_long[i]
@@ -877,8 +957,14 @@ trait NativeDTLocale(DTLocale):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (month, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
@@ -925,8 +1011,14 @@ trait NativeDTLocale(DTLocale):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (month, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
@@ -963,8 +1055,14 @@ trait NativeDTLocale(DTLocale):
         Parameters:
             calendar: The calendar to use.
 
+        Args:
+            read_from: The source data.
+
         Returns:
             A tuple of (is_pm, bytes_read).
+
+        Raises:
+            If parsing fails.
         """
         if read_from.startswith(Self.AM):
             return False, Self.AM.byte_length()
@@ -1068,19 +1166,25 @@ struct FrenchDTLocale(NativeDTLocale):
     comptime day_of_week_names_short: InlineArray[String, 7] = [
         "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"
     ]
+    """Names for the days of the week starting on monday."""
     comptime day_of_week_names_long: InlineArray[String, 7] = [
         "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"
     ]
+    """Names for the days of the week starting on monday."""
     comptime month_names_short: List[Tuple[Int, String]] = [
         (1, "Janv"), (2, "Févr"), (3, "Mars"), (4, "Avr"), (5, "Mai"),
         (6, "Juin"), (7, "Juil"), (8, "Août"), (9, "Sept"), (10, "Oct"),
         (11, "Nov"), (12, "Déc"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     comptime month_names_long: List[Tuple[Int, String]] = [
         (1, "Janvier"), (2, "Février"), (3, "Mars"), (4, "Avril"), (5, "Mai"),
         (6, "Juin"), (7, "Juillet"), (8, "Août"), (9, "Septembre"),
         (10, "Octobre"), (11, "Novembre"), (12, "Décembre"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
 
 
@@ -1092,20 +1196,26 @@ struct PortugueseDTLocale(NativeDTLocale):
     comptime day_of_week_names_short: InlineArray[String, 7] = [
         "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"
     ]
+    """Names for the days of the week starting on monday."""
     comptime day_of_week_names_long: InlineArray[String, 7] = [
         "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", 
         "Sexta-feira", "Sábado", "Domingo"
     ]
+    """Names for the days of the week starting on monday."""
     comptime month_names_short: List[Tuple[Int, String]] = [
         (1, "Jan"), (2, "Fev"), (3, "Mar"), (4, "Abr"), (5, "Mai"), (6, "Jun"),
         (7, "Jul"), (8, "Ago"), (9, "Set"), (10, "Out"), (11, "Nov"),
         (12, "Dez"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     comptime month_names_long: List[Tuple[Int, String]] = [
         (1, "Janeiro"), (2, "Fevereiro"), (3, "Março"), (4, "Abril"),
         (5, "Maio"), (6, "Junho"), (7, "Julho"), (8, "Agosto"), (9, "Setembro"),
         (10, "Outubro"), (11, "Novembro"), (12, "Dezembro"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
 
 
@@ -1117,24 +1227,34 @@ struct ChineseDTLocale(NativeDTLocale):
     comptime day_of_week_names_short: InlineArray[String, 7] = [
         "周一", "周二", "周三", "周四", "周五", "周六", "周日"
     ]
+    """Names for the days of the week starting on monday."""
     comptime day_of_week_names_long: InlineArray[String, 7] = [
         "星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"
     ]
+    """Names for the days of the week starting on monday."""
     comptime month_names_short: List[Tuple[Int, String]] = [
         (1, "1月"), (2, "2月"), (3, "3月"), (4, "4月"), (5, "5月"), (6, "6月"),
         (7, "7月"), (8, "8月"), (9, "9月"), (10, "10月"), (11, "11月"),
         (12, "12月"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     comptime month_names_long: List[Tuple[Int, String]] = [
         (1, "一月"), (2, "二月"), (3, "三月"), (4, "四月"), (5, "五月"),
         (6, "六月"), (7, "七月"), (8, "八月"), (9, "九月"), (10, "十月"),
         (11, "十一月"), (12, "十二月"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
     comptime AM: String = "上午"
+    """String for AM."""
     comptime PM: String = "下午"
+    """String for PM."""
     comptime datetime_fmt_str: String = "%Y年%m月%d日 %H:%M:%S"
+    """Format string for locale's date and time representation."""
     comptime date_fmt_str: String = "%Y年%m月%d日"
+    """Format string for locale's date representation."""
 
 
 @fieldwise_init
@@ -1145,24 +1265,34 @@ struct JapaneseDTLocale(NativeDTLocale):
     comptime day_of_week_names_short: InlineArray[String, 7] = [
         "月", "火", "水", "木", "金", "土", "日"
     ]
+    """Names for the days of the week starting on monday."""
     comptime day_of_week_names_long: InlineArray[String, 7] = [
         "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"
     ]
+    """Names for the days of the week starting on monday."""
     comptime month_names_short: List[Tuple[Int, String]] = [
         (1, "1月"), (2, "2月"), (3, "3月"), (4, "4月"), (5, "5月"), (6, "6月"),
         (7, "7月"), (8, "8月"), (9, "9月"), (10, "10月"), (11, "11月"),
         (12, "12月"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     comptime month_names_long: List[Tuple[Int, String]] = [
         (1, "1月"), (2, "2月"), (3, "3月"), (4, "4月"), (5, "5月"), (6, "6月"),
         (7, "7月"), (8, "8月"), (9, "9月"), (10, "10月"), (11, "11月"),
         (12, "12月"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
     comptime AM: String = "午前"
+    """String for AM."""
     comptime PM: String = "午後"
+    """String for PM."""
     comptime datetime_fmt_str: String = "%Y年%m月%d日 %H時%M分%S秒"
+    """Format string for locale's date and time representation."""
     comptime date_fmt_str: String = "%Y/%m/%d"
+    """Format string for locale's date representation."""
 
 
 @fieldwise_init
@@ -1173,24 +1303,33 @@ struct RussianDTLocale(NativeDTLocale):
     comptime day_of_week_names_short: InlineArray[String, 7] = [
         "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"
     ]
+    """Names for the days of the week starting on monday."""
     comptime day_of_week_names_long: InlineArray[String, 7] = [
         "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота",
         "Воскресенье",
     ]
+    """Names for the days of the week starting on monday."""
     comptime month_names_short: List[Tuple[Int, String]] = [
         (1, "янв"), (2, "фев"), (3, "мар"), (4, "апр"), (5, "мая"), (6, "июн"),
         (7, "июл"), (8, "авг"), (9, "сен"), (10, "окт"), (11, "ноя"),
         (12, "дек"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     comptime month_names_long: List[Tuple[Int, String]] = [
         (1, "января"), (2, "февраля"), (3, "марта"), (4, "апреля"), (5, "мая"),
         (6, "июня"), (7, "июля"), (8, "августа"), (9, "сентября"),
         (10, "октября"), (11, "ноября"), (12, "декабря"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
     comptime AM: String = "ДП"
+    """String for AM."""
     comptime PM: String = "ПП"
+    """String for PM."""
     comptime date_fmt_str: String = "%d.%m.%Y"
+    """Format string for locale's date representation."""
 
 
 @fieldwise_init
@@ -1201,21 +1340,29 @@ struct HindiDTLocale(NativeDTLocale):
     comptime day_of_week_names_short: InlineArray[String, 7] = [
         "सोम", "मंगल", "बुध", "गुरु", "शुक्र", "शनि", "रवि"
     ]
+    """Names for the days of the week starting on monday."""
     comptime day_of_week_names_long: InlineArray[String, 7] = [
         "सोमवार", "मंगलवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार", "रविवार"
     ]
+    """Names for the days of the week starting on monday."""
     comptime month_names_short: List[Tuple[Int, String]] = [
         (1, "जन"), (2, "फ़र"), (3, "मार्च"), (4, "अप्रैल"), (5, "मई"), (6, "जून"),
         (7, "जुल"), (8, "अग"), (9, "सित"), (10, "अक्टू"), (11, "नव"), (12, "दिस"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     comptime month_names_long: List[Tuple[Int, String]] = [
         (1, "जनवरी"), (2, "फ़रवरी"), (3, "मार्च"), (4, "अप्रैल"), (5, "मई"),
         (6, "जून"), (7, "जुलाई"), (8, "अगस्त"), (9, "सितंबर"),
         (10, "अक्टूबर"), (11, "नवंबर"), (12, "दिसंबर"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
     comptime AM: String = "पूर्वाह्न"
+    """String for AM."""
     comptime PM: String = "अपराह्न"
+    """String for PM."""
 
 
 @fieldwise_init
@@ -1226,22 +1373,30 @@ struct ArabicDTLocale(NativeDTLocale):
     comptime day_of_week_names_short: InlineArray[String, 7] = [
         "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"
     ]
+    """Names for the days of the week starting on monday."""
     comptime day_of_week_names_long: InlineArray[String, 7] = [
         "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"
     ]
+    """Names for the days of the week starting on monday."""
     comptime month_names_short: List[Tuple[Int, String]] = [
         (1, "يناير"), (2, "فبراير"), (3, "مارس"), (4, "أبريل"), (5, "مايو"),
         (6, "يونيو"), (7, "يوليو"), (8, "أغسطس"), (9, "سبتمبر"), (10, "أكتوبر"),
         (11, "نوفمبر"), (12, "ديسمبر"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     comptime month_names_long: List[Tuple[Int, String]] = [
         (1, "يناير"), (2, "فبراير"), (3, "مارس"), (4, "أبريل"), (5, "مايو"),
         (6, "يونيو"), (7, "يوليو"), (8, "أغسطس"), (9, "سبتمبر"), (10, "أكتوبر"),
         (11, "نوفمبر"), (12, "ديسمبر"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
     comptime AM: String = "ص"
+    """String for AM."""
     comptime PM: String = "م"
+    """String for PM."""
 
 
 @fieldwise_init
@@ -1252,22 +1407,30 @@ struct BengaliDTLocale(NativeDTLocale):
     comptime day_of_week_names_short: InlineArray[String, 7] = [
         "সোম", "মঙ্গল", "বুধ", "বৃহস্পতি", "শুক্র", "শনি", "রবি"
     ]
+    """Names for the days of the week starting on monday."""
     comptime day_of_week_names_long: InlineArray[String, 7] = [
         "সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার", "শুক্রবার", "শনিবার", "রবিবার"
     ]
+    """Names for the days of the week starting on monday."""
     comptime month_names_short: List[Tuple[Int, String]] = [
         (1, "জানু"), (2, "ফেব"), (3, "মার্চ"), (4, "এপ্রিল"), (5, "মে"), (6, "জুন"),
         (7, "জুল"), (8, "আগস্ট"), (9, "সেপ্টে"), (10, "অক্টো"), (11, "নভে"),
         (12, "ডিসে"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     comptime month_names_long: List[Tuple[Int, String]] = [
         (1, "জানুয়ারি"), (2, "ফেব্রুয়ারি"), (3, "মার্চ"), (4, "এপ্রিল"), (5, "মে"),
         (6, "জুন"), (7, "জুলাই"), (8, "আগস্ট"), (9, "সেপ্টেম্বর"), (10, "অক্টোবর"),
         (11, "নভেম্বর"), (12, "ডিসেম্বর"),
     ]
+    """Names for the months of the year. Alternative names are allowed for
+    parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
     comptime AM: String = "পূর্বাহ্ণ"
+    """String for AM."""
     comptime PM: String = "অপরাহ্ণ"
+    """String for PM."""
 
 
 # ===----------------------------------------------------------------------=== #
@@ -1340,34 +1503,34 @@ def _write_to[
             continue
 
         var c = s.unsafe_ptr()[0]
-        if c == FormatCodes.w.value[0]:
+        if c == FormatCode.w.value[0]:
             writer.write(dt.calendar.day_of_week(dt.dt))
-        elif c == FormatCodes.d.value[0]:
+        elif c == FormatCode.d.value[0]:
             var d = dt.dt.day
             writer.write(_pad(d, 10), d)
-        elif c == FormatCodes.m.value[0]:
+        elif c == FormatCode.m.value[0]:
             var m = dt.dt.month
             writer.write(_pad(m, 10), m)
-        elif c == FormatCodes.y.value[0]:
+        elif c == FormatCode.y.value[0]:
             var y = dt.dt.year % 100
             writer.write(_pad(y, 10), y)
-        elif c == FormatCodes.Y.value[0]:
+        elif c == FormatCode.Y.value[0]:
             var y = dt.dt.year
             writer.write(_pad(y, 1000), _pad(y, 100), _pad(y, 10), y)
-        elif c == FormatCodes.H.value[0]:
+        elif c == FormatCode.H.value[0]:
             var h = dt.dt.hour
             writer.write(_pad(h, 10), h)
-        elif c == FormatCodes.I.value[0]:
+        elif c == FormatCode.I.value[0]:
             var h = dt.dt.hour % 12
             h += UInt8(12 if h == 0 else 0)
             writer.write(_pad(h, 10), h)
-        elif c == FormatCodes.M.value[0]:
+        elif c == FormatCode.M.value[0]:
             var m = dt.dt.minute
             writer.write(_pad(m, 10), m)
-        elif c == FormatCodes.S.value[0]:
+        elif c == FormatCode.S.value[0]:
             var s = dt.dt.second
             writer.write(_pad(s, 10), s)
-        elif c == FormatCodes.f.value[0]:
+        elif c == FormatCode.f.value[0]:
             var f = dt.dt.m_second * 1000 + dt.dt.u_second
             writer.write(
                 _pad(f, 100_000),
@@ -1377,13 +1540,13 @@ def _write_to[
                 _pad(f, 10),
                 f,
             )
-        elif c == FormatCodes.j.value[0]:
+        elif c == FormatCode.j.value[0]:
             var j = dt.calendar.day_of_year(dt.dt)
             writer.write(_pad(j, 100), _pad(j, 10), j)
-        elif c == FormatCodes.W.value[0]:
+        elif c == FormatCode.W.value[0]:
             var w = dt.calendar.week_of_year(dt.dt)
             writer.write(_pad(w, 10), w)
-        elif c == FormatCodes.z.value[0]:
+        elif c == FormatCode.z.value[0]:
             writer.write(
                 "+" if offset.is_east_utc else "-",
                 _pad(offset.hours, 10),
@@ -1391,31 +1554,31 @@ def _write_to[
                 _pad(offset.minutes, 10),
                 offset.minutes,
             )
-        elif c == FormatCodes.`:z`.value[0]:
+        elif c == FormatCode.`:z`.value[0]:
             if not s == ":z":
                 abort(t"Unsupported format code: '{s}'")
             writer.write(offset)
-        elif c == FormatCodes.Z.value[0]:
+        elif c == FormatCode.Z.value[0]:
             writer.write(tz_str)
-        elif c == FormatCodes.`%`.value[0]:
+        elif c == FormatCode.`%`.value[0]:
             writer.write("%")
         else:
             var fmt_str: String
-            if c == FormatCodes.a.value[0]:
+            if c == FormatCode.a.value[0]:
                 fmt_str = locale.day_of_week_short(dt)
-            elif c == FormatCodes.A.value[0]:
+            elif c == FormatCode.A.value[0]:
                 fmt_str = locale.day_of_week_long(dt)
-            elif c == FormatCodes.b.value[0]:
+            elif c == FormatCode.b.value[0]:
                 fmt_str = locale.month_short(dt)
-            elif c == FormatCodes.B.value[0]:
+            elif c == FormatCode.B.value[0]:
                 fmt_str = locale.month_long(dt)
-            elif c == FormatCodes.p.value[0]:
+            elif c == FormatCode.p.value[0]:
                 fmt_str = locale.am_pm(dt)
-            elif c == FormatCodes.c.value[0]:
+            elif c == FormatCode.c.value[0]:
                 fmt_str = locale.datetime_fmt[dt.calendar]()
-            elif c == FormatCodes.x.value[0]:
+            elif c == FormatCode.x.value[0]:
                 fmt_str = locale.date_fmt[dt.calendar]()
-            elif c == FormatCodes.X.value[0]:
+            elif c == FormatCode.X.value[0]:
                 fmt_str = locale.time_fmt[dt.calendar]()
             else:
                 abort(t"Unsupported format code: '{s}'")
@@ -1441,34 +1604,34 @@ def _write_to[
             continue
 
         comptime c = s.unsafe_ptr()[0]
-        comptime if c == FormatCodes.w.value[0]:
+        comptime if c == FormatCode.w.value[0]:
             writer.write(dt.calendar.day_of_week(dt.dt))
-        elif c == FormatCodes.d.value[0]:
+        elif c == FormatCode.d.value[0]:
             var d = dt.dt.day
             writer.write(_pad(d, 10), d)
-        elif c == FormatCodes.m.value[0]:
+        elif c == FormatCode.m.value[0]:
             var m = dt.dt.month
             writer.write(_pad(m, 10), m)
-        elif c == FormatCodes.y.value[0]:
+        elif c == FormatCode.y.value[0]:
             var y = dt.dt.year % 100
             writer.write(_pad(y, 10), y)
-        elif c == FormatCodes.Y.value[0]:
+        elif c == FormatCode.Y.value[0]:
             var y = dt.dt.year
             writer.write(_pad(y, 1000), _pad(y, 100), _pad(y, 10), y)
-        elif c == FormatCodes.H.value[0]:
+        elif c == FormatCode.H.value[0]:
             var h = dt.dt.hour
             writer.write(_pad(h, 10), h)
-        elif c == FormatCodes.I.value[0]:
+        elif c == FormatCode.I.value[0]:
             var h = dt.dt.hour % 12
             h += UInt8(12 if h == 0 else 0)
             writer.write(_pad(h, 10), h)
-        elif c == FormatCodes.M.value[0]:
+        elif c == FormatCode.M.value[0]:
             var m = dt.dt.minute
             writer.write(_pad(m, 10), m)
-        elif c == FormatCodes.S.value[0]:
+        elif c == FormatCode.S.value[0]:
             var s = dt.dt.second
             writer.write(_pad(s, 10), s)
-        elif c == FormatCodes.f.value[0]:
+        elif c == FormatCode.f.value[0]:
             var f = dt.dt.m_second * 1000 + dt.dt.u_second
             writer.write(
                 _pad(f, 100_000),
@@ -1478,13 +1641,13 @@ def _write_to[
                 _pad(f, 10),
                 f,
             )
-        elif c == FormatCodes.j.value[0]:
+        elif c == FormatCode.j.value[0]:
             var j = dt.calendar.day_of_year(dt.dt)
             writer.write(_pad(j, 100), _pad(j, 10), j)
-        elif c == FormatCodes.W.value[0]:
+        elif c == FormatCode.W.value[0]:
             var w = dt.calendar.week_of_year(dt.dt)
             writer.write(_pad(w, 10), w)
-        elif c == FormatCodes.z.value[0]:
+        elif c == FormatCode.z.value[0]:
             writer.write(
                 "+" if offset.is_east_utc else "-",
                 _pad(offset.hours, 10),
@@ -1492,30 +1655,30 @@ def _write_to[
                 _pad(offset.minutes, 10),
                 offset.minutes,
             )
-        elif c == FormatCodes.`:z`.value[0]:
+        elif c == FormatCode.`:z`.value[0]:
             comptime assert s == ":z", t"Unsupported format code: '{s}'"
             writer.write(offset)
-        elif c == FormatCodes.Z.value[0]:
+        elif c == FormatCode.Z.value[0]:
             writer.write(tz_str)
-        elif c == FormatCodes.`%`.value[0]:
+        elif c == FormatCode.`%`.value[0]:
             writer.write("%")
         else:
             var fmt_str: String
-            comptime if c == FormatCodes.a.value[0]:
+            comptime if c == FormatCode.a.value[0]:
                 fmt_str = loc.day_of_week_short(dt)
-            elif c == FormatCodes.A.value[0]:
+            elif c == FormatCode.A.value[0]:
                 fmt_str = loc.day_of_week_long(dt)
-            elif c == FormatCodes.b.value[0]:
+            elif c == FormatCode.b.value[0]:
                 fmt_str = loc.month_short(dt)
-            elif c == FormatCodes.B.value[0]:
+            elif c == FormatCode.B.value[0]:
                 fmt_str = loc.month_long(dt)
-            elif c == FormatCodes.p.value[0]:
+            elif c == FormatCode.p.value[0]:
                 fmt_str = loc.am_pm(dt)
-            elif c == FormatCodes.c.value[0]:
+            elif c == FormatCode.c.value[0]:
                 fmt_str = loc.datetime_fmt[dt.calendar]()
-            elif c == FormatCodes.x.value[0]:
+            elif c == FormatCode.x.value[0]:
                 fmt_str = loc.date_fmt[dt.calendar]()
-            elif c == FormatCodes.X.value[0]:
+            elif c == FormatCode.X.value[0]:
                 fmt_str = loc.time_fmt[dt.calendar]()
             else:
                 comptime assert False, t"Unsupported format code: '{s}'"
@@ -1569,14 +1732,14 @@ def _parse[
             continue
 
         var c = s.unsafe_ptr()[0]
-        if c == FormatCodes.w.value[0]:
+        if c == FormatCode.w.value[0]:
             comptime DoW = DayOfWeek[dt.calendar]
             var dow, sl = _parse_num_or_raise[
                 1, DoW.min_raw_value, DoW.max_raw_value, "day of week"
             ](read_from)
             days_to_add += dow
             read_from = sl
-        elif c == FormatCodes.d.value[0]:
+        elif c == FormatCode.d.value[0]:
             var day, sl = _parse_num_or_raise[
                 2,
                 dt.calendar.min_day,
@@ -1585,37 +1748,37 @@ def _parse[
             ](read_from)
             dt.dt.day = UInt8(day)
             read_from = sl
-        elif c == FormatCodes.m.value[0]:
+        elif c == FormatCode.m.value[0]:
             var month, sl = _parse_num_or_raise[
                 2, dt.calendar.min_month, dt.calendar.max_month, "month"
             ](read_from)
             dt.dt.month = UInt8(month)
             read_from = sl
-        elif c == FormatCodes.y.value[0]:
+        elif c == FormatCode.y.value[0]:
             var year, sl = _parse_num_or_raise[
                 2, dt.calendar.min_year, dt.calendar.max_year, "year"
             ](read_from)
             dt.dt.year = year
             read_from = sl
-        elif c == FormatCodes.Y.value[0]:
+        elif c == FormatCode.Y.value[0]:
             var year, sl = _parse_num_or_raise[
                 4, dt.calendar.min_year, dt.calendar.max_year, "year"
             ](read_from)
             dt.dt.year = year
             read_from = sl
-        elif c == FormatCodes.H.value[0] or c == FormatCodes.I.value[0]:
+        elif c == FormatCode.H.value[0] or c == FormatCode.I.value[0]:
             var hour, sl = _parse_num_or_raise[
                 2, dt.calendar.min_hour, dt.calendar.max_hour, "hour"
             ](read_from)
             dt.dt.hour = UInt8(hour)
             read_from = sl
-        elif c == FormatCodes.M.value[0]:
+        elif c == FormatCode.M.value[0]:
             var minute, sl = _parse_num_or_raise[
                 2, dt.calendar.min_minute, dt.calendar.max_minute, "minute"
             ](read_from)
             dt.dt.minute = UInt8(minute)
             read_from = sl
-        elif c == FormatCodes.S.value[0]:
+        elif c == FormatCode.S.value[0]:
             var second, sl = _parse_num_or_raise[
                 2,
                 dt.calendar.min_second,
@@ -1624,7 +1787,7 @@ def _parse[
             ](read_from)
             dt.dt.second = UInt8(second)
             read_from = sl
-        elif c == FormatCodes.f.value[0]:
+        elif c == FormatCode.f.value[0]:
             var millisecond, sl0 = _parse_num_or_raise[
                 3,
                 dt.calendar.min_millisecond,
@@ -1640,7 +1803,7 @@ def _parse[
             ](sl0)
             dt.dt.u_second = microsecond
             read_from = sl
-        elif c == FormatCodes.j.value[0]:
+        elif c == FormatCode.j.value[0]:
             var doy, sl = _parse_num_or_raise[
                 3,
                 UInt16(dt.calendar.min_day),
@@ -1649,7 +1812,7 @@ def _parse[
             ](read_from)
             days_to_add += doy
             read_from = sl
-        elif c == FormatCodes.W.value[0]:
+        elif c == FormatCode.W.value[0]:
             var woy, sl = _parse_num_or_raise[
                 2,
                 dt.calendar.min_weeks_in_year,
@@ -1658,17 +1821,17 @@ def _parse[
             ](read_from)
             days_to_add += (woy - UInt16(dt.calendar.min_weeks_in_year)) * 7
             read_from = sl
-        elif c == FormatCodes.z.value[0]:
+        elif c == FormatCode.z.value[0]:
             var of, length = Offset.parse(read_from)
             offset = of
             read_from = read_from[byte=length:]
-        elif c == FormatCodes.`:z`.value[0]:
+        elif c == FormatCode.`:z`.value[0]:
             if not s == ":z":
                 raise Error(t"Unsupported format code: '{s}'")
             var of, length = Offset.parse(read_from)
             offset = of
             read_from = read_from[byte=length:]
-        elif c == FormatCodes.Z.value[0]:
+        elif c == FormatCode.Z.value[0]:
             var idx = read_from.find(" ")
             var maybe_tz_str = read_from[byte=:idx] if idx != -1 else read_from
             var maybe_zone_info = global_constant[zone_info_dict]().get(
@@ -1680,31 +1843,31 @@ def _parse[
                 )
             zone_info = maybe_zone_info.value()
             read_from = read_from[byte = maybe_tz_str.byte_length() :]
-        elif c == FormatCodes.`%`.value[0]:
+        elif c == FormatCode.`%`.value[0]:
             if not read_from.startswith("%"):
                 raise Error("Expected a '%' character")
             read_from = read_from[byte=1:]
-        elif c == FormatCodes.a.value[0]:
+        elif c == FormatCode.a.value[0]:
             var _, bytes_read = locale.parse_day_of_week_short[calendar](
                 read_from
             )
             read_from = read_from[byte = Int(bytes_read) :]
-        elif c == FormatCodes.A.value[0]:
+        elif c == FormatCode.A.value[0]:
             var _, bytes_read = locale.parse_day_of_week_long[calendar](
                 read_from
             )
             read_from = read_from[byte = Int(bytes_read) :]
-        elif c == FormatCodes.b.value[0]:
+        elif c == FormatCode.b.value[0]:
             var month, bytes_read = locale.parse_month_short[calendar](
                 read_from
             )
             dt.dt.month = month
             read_from = read_from[byte = Int(bytes_read) :]
-        elif c == FormatCodes.B.value[0]:
+        elif c == FormatCode.B.value[0]:
             var month, bytes_read = locale.parse_month_long[calendar](read_from)
             dt.dt.month = month
             read_from = read_from[byte = Int(bytes_read) :]
-        elif c == FormatCodes.p.value[0]:
+        elif c == FormatCode.p.value[0]:
             var is_pm, bytes_read = locale.parse_am_pm[calendar](read_from)
             comptime middle = (
                 dt.calendar.max_hour - dt.calendar.min_hour + 1
@@ -1717,11 +1880,11 @@ def _parse[
             read_from = read_from[byte = Int(bytes_read) :]
         else:
             var fmt_str: String
-            if c == FormatCodes.c.value[0]:
+            if c == FormatCode.c.value[0]:
                 fmt_str = locale.datetime_fmt[calendar]()
-            elif c == FormatCodes.x.value[0]:
+            elif c == FormatCode.x.value[0]:
                 fmt_str = locale.date_fmt[calendar]()
-            elif c == FormatCodes.X.value[0]:
+            elif c == FormatCode.X.value[0]:
                 fmt_str = locale.time_fmt[calendar]()
             else:
                 raise Error(t"Unsupported format code: '{s}'")
@@ -1774,14 +1937,14 @@ def _parse[
             continue
 
         comptime c = s.unsafe_ptr()[0]
-        comptime if c == FormatCodes.w.value[0]:
+        comptime if c == FormatCode.w.value[0]:
             comptime DoW = DayOfWeek[dt.calendar]
             var dow, sl = _parse_num_or_raise[
                 1, DoW.min_raw_value, DoW.max_raw_value, "day of week"
             ](read_from)
             days_to_add += dow
             read_from = sl
-        elif c == FormatCodes.d.value[0]:
+        elif c == FormatCode.d.value[0]:
             var day, sl = _parse_num_or_raise[
                 2,
                 dt.calendar.min_day,
@@ -1790,37 +1953,37 @@ def _parse[
             ](read_from)
             dt.dt.day = UInt8(day)
             read_from = sl
-        elif c == FormatCodes.m.value[0]:
+        elif c == FormatCode.m.value[0]:
             var month, sl = _parse_num_or_raise[
                 2, dt.calendar.min_month, dt.calendar.max_month, "month"
             ](read_from)
             dt.dt.month = UInt8(month)
             read_from = sl
-        elif c == FormatCodes.y.value[0]:
+        elif c == FormatCode.y.value[0]:
             var year, sl = _parse_num_or_raise[
                 2, dt.calendar.min_year, dt.calendar.max_year, "year"
             ](read_from)
             dt.dt.year = year
             read_from = sl
-        elif c == FormatCodes.Y.value[0]:
+        elif c == FormatCode.Y.value[0]:
             var year, sl = _parse_num_or_raise[
                 4, dt.calendar.min_year, dt.calendar.max_year, "year"
             ](read_from)
             dt.dt.year = year
             read_from = sl
-        elif c == FormatCodes.H.value[0] or c == FormatCodes.I.value[0]:
+        elif c == FormatCode.H.value[0] or c == FormatCode.I.value[0]:
             var hour, sl = _parse_num_or_raise[
                 2, dt.calendar.min_hour, dt.calendar.max_hour, "hour"
             ](read_from)
             dt.dt.hour = UInt8(hour)
             read_from = sl
-        elif c == FormatCodes.M.value[0]:
+        elif c == FormatCode.M.value[0]:
             var minute, sl = _parse_num_or_raise[
                 2, dt.calendar.min_minute, dt.calendar.max_minute, "minute"
             ](read_from)
             dt.dt.minute = UInt8(minute)
             read_from = sl
-        elif c == FormatCodes.S.value[0]:
+        elif c == FormatCode.S.value[0]:
             var second, sl = _parse_num_or_raise[
                 2,
                 dt.calendar.min_second,
@@ -1829,7 +1992,7 @@ def _parse[
             ](read_from)
             dt.dt.second = UInt8(second)
             read_from = sl
-        elif c == FormatCodes.f.value[0]:
+        elif c == FormatCode.f.value[0]:
             var millisecond, sl0 = _parse_num_or_raise[
                 3,
                 dt.calendar.min_millisecond,
@@ -1845,7 +2008,7 @@ def _parse[
             ](sl0)
             dt.dt.u_second = microsecond
             read_from = sl
-        elif c == FormatCodes.j.value[0]:
+        elif c == FormatCode.j.value[0]:
             var doy, sl = _parse_num_or_raise[
                 3,
                 UInt16(dt.calendar.min_day),
@@ -1854,7 +2017,7 @@ def _parse[
             ](read_from)
             days_to_add += doy - UInt16(dt.calendar.min_day)
             read_from = sl
-        elif c == FormatCodes.W.value[0]:
+        elif c == FormatCode.W.value[0]:
             var woy, sl = _parse_num_or_raise[
                 2,
                 dt.calendar.min_weeks_in_year,
@@ -1863,16 +2026,16 @@ def _parse[
             ](read_from)
             days_to_add += (woy - UInt16(dt.calendar.min_weeks_in_year)) * 7
             read_from = sl
-        elif c == FormatCodes.z.value[0]:
+        elif c == FormatCode.z.value[0]:
             var of, length = Offset.parse(read_from)
             offset = of
             read_from = read_from[byte=length:]
-        elif c == FormatCodes.`:z`.value[0]:
+        elif c == FormatCode.`:z`.value[0]:
             comptime assert s == ":z", t"Unsupported format code: '{s}'"
             var of, length = Offset.parse(read_from)
             offset = of
             read_from = read_from[byte=length:]
-        elif c == FormatCodes.Z.value[0]:
+        elif c == FormatCode.Z.value[0]:
             var idx = read_from.find(" ")
             var maybe_tz_str = read_from[byte=:idx] if idx != -1 else read_from
             var maybe_zone_info = global_constant[zone_info_dict]().get(
@@ -1884,25 +2047,25 @@ def _parse[
                 )
             zone_info = maybe_zone_info.value()
             read_from = read_from[byte = maybe_tz_str.byte_length() :]
-        elif c == FormatCodes.`%`.value[0]:
+        elif c == FormatCode.`%`.value[0]:
             if not read_from.startswith("%"):
                 raise Error("Expected a '%' character")
             read_from = read_from[byte=1:]
-        elif c == FormatCodes.a.value[0]:
+        elif c == FormatCode.a.value[0]:
             var _, bytes_read = loc.parse_day_of_week_short[calendar](read_from)
             read_from = read_from[byte = Int(bytes_read) :]
-        elif c == FormatCodes.A.value[0]:
+        elif c == FormatCode.A.value[0]:
             var _, bytes_read = loc.parse_day_of_week_long[calendar](read_from)
             read_from = read_from[byte = Int(bytes_read) :]
-        elif c == FormatCodes.b.value[0]:
+        elif c == FormatCode.b.value[0]:
             var month, bytes_read = loc.parse_month_short[calendar](read_from)
             dt.dt.month = month
             read_from = read_from[byte = Int(bytes_read) :]
-        elif c == FormatCodes.B.value[0]:
+        elif c == FormatCode.B.value[0]:
             var month, bytes_read = loc.parse_month_long[calendar](read_from)
             dt.dt.month = month
             read_from = read_from[byte = Int(bytes_read) :]
-        elif c == FormatCodes.p.value[0]:
+        elif c == FormatCode.p.value[0]:
             comptime assert (
                 "%I" in spec
             ), "Expected a '%I' format spec when a '%p' is present"
@@ -1918,11 +2081,11 @@ def _parse[
             read_from = read_from[byte = Int(bytes_read) :]
         else:
             var fmt_str: String
-            comptime if c == FormatCodes.c.value[0]:
+            comptime if c == FormatCode.c.value[0]:
                 fmt_str = loc.datetime_fmt[calendar]()
-            elif c == FormatCodes.x.value[0]:
+            elif c == FormatCode.x.value[0]:
                 fmt_str = loc.date_fmt[calendar]()
-            elif c == FormatCodes.X.value[0]:
+            elif c == FormatCode.X.value[0]:
                 fmt_str = loc.time_fmt[calendar]()
             else:
                 comptime assert False, t"Unsupported format code: '{s}'"

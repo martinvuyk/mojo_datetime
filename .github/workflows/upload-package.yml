@@ -1,0 +1,24 @@
+name: Upload package as an artifact
+
+on:
+    workflow_call:
+
+jobs:
+    upload-package-github:
+        name: Package
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+            - name: Set up Pixi
+              uses: prefix-dev/setup-pixi@main
+              with:
+                  pixi-version: latest
+                  cache: true
+            - name: Run the package command
+              run: pixi run build
+            - name: Upload package as artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  name: mojo_datetime-package
+                  path: ./build/mojo_datetime.mojopkg

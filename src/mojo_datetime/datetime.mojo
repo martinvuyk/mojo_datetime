@@ -718,6 +718,10 @@ struct DateTime[
     ](var self, other: Self) -> TimeDelta[unit, dtype]:
         """Subtracts another `DateTime`.
 
+        Parameters:
+            unit: The time unit to calculate the delta in.
+            dtype: The dtype to store the delta in.
+
         Args:
             other: Other.
 
@@ -846,6 +850,9 @@ struct DateTime[
         cal_hash: CalendarHashes = CalendarHashes.UINT64
     ](self) -> Scalar[cal_hash.dtype]:
         """Hash.
+
+        Parameters:
+            cal_hash: The calendar hash to hash this with.
 
         Returns:
             Result.
@@ -1067,6 +1074,9 @@ struct DateTime[
 
         Returns:
             The result.
+
+        Raises:
+            If parsing fails for any of several reasons.
 
         Notes:
             - Format codes `{"%w", "%W", "%j"}`: When parsing any datetime that

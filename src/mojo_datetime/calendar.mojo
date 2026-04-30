@@ -131,7 +131,11 @@ struct _NaiveDateTime(Comparable, ImplicitlyCopyable, Writable):
 struct CalendarHashes[dtype: DType]:
     """Hashing definitions. Up to microsecond resolution for
     the 64bit hash. Each calendar implementation can still
-    override with its own definitions."""
+    override with its own definitions.
+
+    Parameters:
+        dtype: The dtype that this calendar hash uses.
+    """
 
     comptime UINT8 = CalendarHashes[DType.uint8]()
     """Hash width UINT8."""
@@ -169,13 +173,21 @@ struct CalendarHashes[dtype: DType]:
     comptime shift_64_us = 0
     """Up to 1024 u_seconds in total (-1 numeric)."""
     comptime mask_64_y: UInt64 = CalendarHashes._17b
+    """A mask_64_y."""
     comptime mask_64_mon: UInt64 = CalendarHashes._5b
+    """A mask_64_mon."""
     comptime mask_64_d: UInt64 = CalendarHashes._5b
+    """A mask_64_d."""
     comptime mask_64_h: UInt64 = CalendarHashes._5b
+    """A mask_64_h."""
     comptime mask_64_m: UInt64 = CalendarHashes._6b
+    """A mask_64_m."""
     comptime mask_64_s: UInt64 = CalendarHashes._6b
+    """A mask_64_s."""
     comptime mask_64_ms: UInt64 = CalendarHashes._10b
+    """A mask_64_ms."""
     comptime mask_64_us: UInt64 = CalendarHashes._10b
+    """A mask_64_us."""
 
     comptime shift_32_y = (4 + 5 + 5 + 6)
     """Up to 4096 years in total (-1 numeric)."""
@@ -188,10 +200,15 @@ struct CalendarHashes[dtype: DType]:
     comptime shift_32_m = 0
     """Up to 64 minutes in total (-1 numeric)."""
     comptime mask_32_y: UInt32 = CalendarHashes._12b
+    """A mask_32_y."""
     comptime mask_32_mon: UInt32 = CalendarHashes._4b
+    """A mask_32_mon."""
     comptime mask_32_d: UInt32 = CalendarHashes._5b
+    """A mask_32_d."""
     comptime mask_32_h: UInt32 = CalendarHashes._5b
+    """A mask_32_h."""
     comptime mask_32_m: UInt32 = CalendarHashes._6b
+    """A mask_32_m."""
 
     comptime shift_16_y = (9 + 5)
     """Up to 4 years in total (-1 numeric)."""
@@ -200,15 +217,20 @@ struct CalendarHashes[dtype: DType]:
     comptime shift_16_h = 0
     """Up to 32 hours in total (-1 numeric)."""
     comptime mask_16_y: UInt16 = CalendarHashes._2b
+    """A mask_16_y."""
     comptime mask_16_d: UInt16 = CalendarHashes._9b
+    """A mask_16_d."""
     comptime mask_16_h: UInt16 = CalendarHashes._5b
+    """A mask_16_h."""
 
     comptime shift_8_d = 5
     """Up to 8 days in total (-1 numeric)."""
     comptime shift_8_h = 0
     """Up to 32 hours in total (-1 numeric)."""
     comptime mask_8_d: UInt8 = CalendarHashes._3b
+    """A mask_8_d."""
     comptime mask_8_h: UInt8 = CalendarHashes._5b
+    """A mask_8_h."""
 
 
 # ===----------------------------------------------------------------------=== #
@@ -222,7 +244,7 @@ struct Leapsec(TrivialRegisterPassable):
     https://en.wikipedia.org/wiki/International_Atomic_Time).
     """
 
-    comptime cal_h = CalendarHashes.UINT32
+    comptime _cal_h = CalendarHashes.UINT32
 
     var year: UInt16
     """Year in which the leap second was added."""
@@ -232,28 +254,47 @@ struct Leapsec(TrivialRegisterPassable):
     """Day in which the leap second was added."""
 
     def __init__(out self, dt: _NaiveDateTime):
+        """Construct a Leapsec from a naive datetime.
+
+        Args:
+            dt: A naive datetime.
+        """
         self.year = dt.year
         self.month = dt.month
         self.day = dt.day
 
     @staticmethod
     def from_hash(value: UInt32) -> Self:
+        """Parse a hash.
+
+        Args:
+            value: The hash value.
+
+        Returns:
+            The result.
+        """
         var year = UInt16(
-            UInt32(value >> Self.cal_h.shift_32_y) & Self.cal_h.mask_32_y
+            UInt32(value >> Self._cal_h.shift_32_y) & Self._cal_h.mask_32_y
         )
         var month = UInt8(
-            UInt32(value >> Self.cal_h.shift_32_mon) & Self.cal_h.mask_32_mon
+            UInt32(value >> Self._cal_h.shift_32_mon) & Self._cal_h.mask_32_mon
         )
         var day = UInt8(
-            UInt32(value >> Self.cal_h.shift_32_d) & Self.cal_h.mask_32_d
+            UInt32(value >> Self._cal_h.shift_32_d) & Self._cal_h.mask_32_d
         )
         return {year, month, day}
 
     def hash(self) -> UInt32:
+        """Produce a hash from self.
+
+        Returns:
+            The result.
+        """
+
         return (
-            (UInt32(self.year) << Self.cal_h.shift_32_y)
-            | (UInt32(self.month) << Self.cal_h.shift_32_mon)
-            | (UInt32(self.day) << Self.cal_h.shift_32_d)
+            (UInt32(self.year) << Self._cal_h.shift_32_y)
+            | (UInt32(self.month) << Self._cal_h.shift_32_mon)
+            | (UInt32(self.day) << Self._cal_h.shift_32_d)
         )
 
 
@@ -923,6 +964,7 @@ struct Gregorian[
         Self.include_leapsecs_, 1970, Self.hashed_leapsec_array_
     ]
     comptime min_year: UInt16 = Self.min_year_
+    """Default minimum year in the calendar."""
 
     def __init__(out self):
         """Construct a `Gregorian` Calendar."""

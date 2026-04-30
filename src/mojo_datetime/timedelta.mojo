@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
-
+"""A module that defines a time-unit aware `TimeDelta`."""
 from .calendar import Calendar, PythonCalendar, SITimeUnit
 
 comptime _default_dtype = DType.uint64
@@ -27,6 +27,7 @@ struct TimeDelta[
     """
 
     var value: Scalar[Self.dtype]
+    """The raw time delta value."""
 
     @always_inline
     def __init__(out self, value: Scalar[Self.dtype]):
