@@ -20,5 +20,4 @@ jobs:
     uses: ./.github/workflows/test.yml
 
   release:
-    needs: upload-package
     uses: ./.github/workflows/release.yml
