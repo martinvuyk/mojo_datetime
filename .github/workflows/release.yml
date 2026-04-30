@@ -23,17 +23,11 @@ jobs:
       - name: Get the version
         id: get_version
         run: |
-          TAG="$(pixi project version get)-$(pixi list | grep 'mojo-compiler' | awk '{print $2}')"
+          TAG="$(pixi project version get)-compiler-$(pixi list | grep 'mojo-compiler' | awk '{print $2}')"
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
 
       - name: Run the package command
         run: pixi run package
-
-      # - name: Upload package as artifact
-      #   uses: actions/upload-artifact@v7
-      #   with:
-      #       name: mojo_datetime-package
-      #       path: ./build/mojo_datetime.mojopkg
 
       - name: Upload package to release
         uses: svenstaro/upload-release-action@v2
