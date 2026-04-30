@@ -10,11 +10,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
       - name: Set up Pixi
         uses: prefix-dev/setup-pixi@main
         with:
           pixi-version: latest
           cache: true
+
       - name: Run the test suite
         run: pixi run tests
 
@@ -24,10 +26,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
       - name: Set up Pixi
         uses: prefix-dev/setup-pixi@main
         with:
           pixi-version: latest
           cache: true
+
       - name: Run the test suite
         run: pixi run tests

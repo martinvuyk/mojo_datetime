@@ -1,0 +1,32 @@
+name: Upgrade nightly version
+on:
+  schedule:
+    - cron: 5 */12 * * *  # At 5 minutes past the hour, every 12 hours
+  workflow_call:
+
+permissions:
+  contents: write
+
+jobs:
+  pixi-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@main
+        with:
+          pixi-version: latest
+          cache: true
+
+      - name: Run upgrade
+        run: pixi run upgrade
+
+      - name: Commit and Push
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "Auto-update: changes from workflow"
+          branch: main
