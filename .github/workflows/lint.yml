@@ -1,22 +1,22 @@
 name: Run linting
 
 on:
-    workflow_call:
+  workflow_call:
 
 jobs:
-    lint-docs:
-        name: Run lint
-        runs-on: ubuntu-latest
-        steps:
-            - name: Checkout code
-              uses: actions/checkout@v4
-            - name: Set up Pixi
-              uses: prefix-dev/setup-pixi@main
-              with:
-                  pixi-version: latest
-                  cache: true
-            - name: Run pre-commit
-              run: |
-                pip3 install pre-commit
-                pre-commit install
-                pixi run pre-commit run --all-files
+  lint-docs:
+    name: Run lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Set up Pixi
+        uses: prefix-dev/setup-pixi@main
+        with:
+          pixi-version: latest
+          cache: true
+      - name: Run pre-commit
+        run: |
+          pip3 install pre-commit
+          pre-commit install
+          pixi run pre-commit run --all-files
