@@ -3,6 +3,10 @@ name: Run on a push into main
 on:
   push:
     branches: [main, 0.26.2]
+    paths:
+      - '**.mojo'
+      - 'pixi.toml'
+      - 'pixi.lock'
 
 permissions:
   contents: write
