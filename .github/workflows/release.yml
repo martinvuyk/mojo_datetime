@@ -22,7 +22,7 @@ jobs:
 
       - name: Get the version
         id: get_version
-        run: echo 'VERSION="${$(pixi project version get)}-${$(pixi list | grep "mojo-compiler" | awk '{print $2}')}"' >> $GITHUB_OUTPUT
+        run: echo 'VERSION="$(pixi project version get)-$(pixi list | grep "mojo-compiler" | awk '{print $2}')"' >> $GITHUB_OUTPUT
 
       - uses: actions/download-artifact@v8
         with:
