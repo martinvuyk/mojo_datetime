@@ -1,4 +1,4 @@
-name: Run on a push into main
+name: Run on a push into a version branch
 
 on:
   push:
