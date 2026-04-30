@@ -1,9 +1,6 @@
 name: Release tag pipeline
 
 on:
-  push:
-    tags:
-      - '*'
   workflow_dispatch:
 
 permissions:
