@@ -1,0 +1,9 @@
+
+# pixi environments
+.pixi
+*.egg-info
+# packages
+*.mojopkg
+
+build/
+kgen.trace.*

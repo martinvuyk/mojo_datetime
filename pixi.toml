@@ -1,0 +1,15 @@
+[workspace]
+authors = ["martinvuyk <martin.vuyklop@gmail.com>"]
+channels = ["https://conda.modular.com/max-nightly", "conda-forge"]
+name = "mojo_datetime"
+platforms = ["osx-arm64", "linux-aarch64", "linux-64"]
+version = "0.1.0"
+
+[tasks]
+format = { cmd = "mojo format ./src" }
+build = { cmd = "./scripts/package-lib.sh", depends-on = ["format"] }
+tests = { cmd = "./scripts/run_tests.sh", depends-on = ["build"]}
+
+[dependencies]
+mojo = ">=1.0.0b1.dev2026042817,<2"
+max = ">=26.3.0.dev2026042817,<27"
