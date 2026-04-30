@@ -464,9 +464,7 @@ comptime _posix_days[calendar: Calendar]: InlineArray[
 struct LibCLocale(DTLocale):
     """A POSIX standard C locale via FFI with Libc."""
 
-    # FIXME: nightly, not 0.26.2
-    # comptime _ptr = Optional[OpaquePointer[MutExternalOrigin]]
-    comptime _ptr = OpaquePointer[MutExternalOrigin]
+    comptime _ptr = Optional[OpaquePointer[MutExternalOrigin]]
     var _loc: Self._ptr
 
     def __init__(out self, var locale_name: String) raises:
