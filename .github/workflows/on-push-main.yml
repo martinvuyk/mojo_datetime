@@ -19,10 +19,6 @@ jobs:
     needs: lint
     uses: ./.github/workflows/test.yml
 
-  upload-package:
-    needs: test
-    uses: ./.github/workflows/upload-package.yml
-
   release:
     needs: upload-package
     uses: ./.github/workflows/release.yml

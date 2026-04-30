@@ -22,15 +22,22 @@ jobs:
 
       - name: Get the version
         id: get_version
-        run: echo 'VERSION="$(pixi project version get)-$(pixi list | grep "mojo-compiler" | awk '{print $2}')"' >> $GITHUB_OUTPUT
+        run: |
+          TAG="$(pixi project version get)-$(pixi list | grep 'mojo-compiler' | awk '{print $2}')"
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
 
-      - uses: actions/download-artifact@v8
-        with:
-          name: mojo_datetime-package
+      - name: Run the package command
+        run: pixi run package
+
+      # - name: Upload package as artifact
+      #   uses: actions/upload-artifact@v7
+      #   with:
+      #       name: mojo_datetime-package
+      #       path: ./build/mojo_datetime.mojopkg
 
       - name: Upload package to release
         uses: svenstaro/upload-release-action@v2
         with:
-          file: mojo_datetime.mojopkg
-          tag: ${{ steps.get_version.outputs.VERSION }}
+          file: ./build/mojo_datetime.mojopkg
+          tag: ${{ steps.get_version.outputs.TAG }}
           overwrite: true
