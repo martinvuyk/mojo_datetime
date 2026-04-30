@@ -16,7 +16,7 @@ jobs:
           pixi-version: latest
           cache: true
       - name: Run the test suite
-        run: pixi run test
+        run: pixi run tests
 
   test-macos:
     name: Run tests
@@ -30,4 +30,4 @@ jobs:
           pixi-version: latest
           cache: true
       - name: Run the test suite
-        run: pixi run test
+        run: pixi run tests
