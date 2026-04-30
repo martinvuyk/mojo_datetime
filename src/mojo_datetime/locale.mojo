@@ -464,7 +464,9 @@ comptime _posix_days[calendar: Calendar]: InlineArray[
 struct LibCLocale(DTLocale):
     """A POSIX standard C locale via FFI with Libc."""
 
-    comptime _ptr = Optional[OpaquePointer[MutExternalOrigin]]
+    # FIXME: nightly, not 0.26.2
+    # comptime _ptr = Optional[OpaquePointer[MutExternalOrigin]]
+    comptime _ptr = OpaquePointer[MutExternalOrigin]
     var _loc: Self._ptr
 
     def __init__(out self, var locale_name: String) raises:
@@ -546,7 +548,7 @@ struct LibCLocale(DTLocale):
             if dow == day:
                 return String(self._get_langinfo(_ABDAY_1 + Int32(i)))
 
-        assert False, t"Unknown day of the week for datetime: {dt}"
+        assert False, String(t"Unknown day of the week for datetime: {dt}")
         return String(self._get_langinfo(_ABDAY_1 + 6))
 
     def parse_day_of_week_short[
@@ -591,7 +593,7 @@ struct LibCLocale(DTLocale):
             if dow == day:
                 return String(self._get_langinfo(_DAY_1 + Int32(i)))
 
-        assert False, t"Unknown day of the week for datetime: {dt}"
+        assert False, String(t"Unknown day of the week for datetime: {dt}")
         return String(self._get_langinfo(_DAY_1 + 6))
 
     def parse_day_of_week_long[
@@ -845,7 +847,7 @@ trait NativeDTLocale(DTLocale):
             comptime day = _days[dt.calendar][i]
             if dow == day:
                 return dow_str
-        assert False, t"Unknown day of the week for datetime: {dt}"
+        assert False, String(t"Unknown day of the week for datetime: {dt}")
         comptime sunday = Self.day_of_week_names_short[6]
         return sunday
 
@@ -892,7 +894,7 @@ trait NativeDTLocale(DTLocale):
             if dow == day:
                 return dow_str
 
-        assert False, t"Unknown day of the week for datetime: {dt}"
+        assert False, String(t"Unknown day of the week for datetime: {dt}")
         comptime sunday = Self.day_of_week_names_long[6]
         return sunday
 
@@ -935,13 +937,13 @@ trait NativeDTLocale(DTLocale):
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
             dt.calendar.min_month == 1 and dt.calendar.max_month == 12
-        ), t"{this_impl} with a month range: [1, 12]"
+        ), String(t"{this_impl} with a month range: [1, 12]")
         comptime for i in range(len(Self.month_names_short)):
             comptime mon_num, mon_str = Self.month_names_short[i]
             if dt.dt.month == UInt8(mon_num):
                 return mon_str
 
-        assert False, t"Unknown month for datetime: {dt}"
+        assert False, String(t"Unknown month for datetime: {dt}")
         comptime _, last = Self.month_names_short[
             len(Self.month_names_short) - 1
         ]
@@ -969,7 +971,7 @@ trait NativeDTLocale(DTLocale):
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
             calendar.min_month == 1 and calendar.max_month == 12
-        ), t"{this_impl} with a month range: [1, 12]"
+        ), String(t"{this_impl} with a month range: [1, 12]")
         comptime for i in range(len(Self.month_names_short)):
             comptime mon_num, mon_str = Self.month_names_short[i]
             if read_from.startswith(mon_str):
@@ -989,13 +991,13 @@ trait NativeDTLocale(DTLocale):
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
             dt.calendar.min_month == 1 and dt.calendar.max_month == 12
-        ), t"{this_impl} with a month range: [1, 12]"
+        ), String(t"{this_impl} with a month range: [1, 12]")
         comptime for i in range(len(Self.month_names_long)):
             comptime mon_num, mon_str = Self.month_names_long[i]
             if dt.dt.month == UInt8(mon_num):
                 return mon_str
 
-        assert False, t"Unknown month for datetime: {dt}"
+        assert False, String(t"Unknown month for datetime: {dt}")
         comptime _, last = Self.month_names_short[
             len(Self.month_names_short) - 1
         ]
@@ -1023,7 +1025,7 @@ trait NativeDTLocale(DTLocale):
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
             calendar.min_month == 1 and calendar.max_month == 12
-        ), t"{this_impl} with a month range: [1, 12]"
+        ), String(t"{this_impl} with a month range: [1, 12]")
         comptime for i in range(len(Self.month_names_long)):
             comptime mon_num, mon_str = Self.month_names_long[i]
             if read_from.startswith(mon_str):
@@ -1656,7 +1658,7 @@ def _write_to[
                 offset.minutes,
             )
         elif c == FormatCode.`:z`.value[0]:
-            comptime assert s == ":z", t"Unsupported format code: '{s}'"
+            comptime assert s == ":z", String(t"Unsupported format code: '{s}'")
             writer.write(offset)
         elif c == FormatCode.Z.value[0]:
             writer.write(tz_str)
@@ -1681,7 +1683,7 @@ def _write_to[
             elif c == FormatCode.X.value[0]:
                 fmt_str = loc.time_fmt[dt.calendar]()
             else:
-                comptime assert False, t"Unsupported format code: '{s}'"
+                comptime assert False, String(t"Unsupported format code: '{s}'")
             _write_to[tz_str](fmt_str, writer, dt, offset, loc)
 
 
@@ -2031,7 +2033,7 @@ def _parse[
             offset = of
             read_from = read_from[byte=length:]
         elif c == FormatCode.`:z`.value[0]:
-            comptime assert s == ":z", t"Unsupported format code: '{s}'"
+            comptime assert s == ":z", String(t"Unsupported format code: '{s}'")
             var of, length = Offset.parse(read_from)
             offset = of
             read_from = read_from[byte=length:]
@@ -2088,7 +2090,7 @@ def _parse[
             elif c == FormatCode.X.value[0]:
                 fmt_str = loc.time_fmt[calendar]()
             else:
-                comptime assert False, t"Unsupported format code: '{s}'"
+                comptime assert False, String(t"Unsupported format code: '{s}'")
             _parse[calendar, zone_info_dict](
                 fmt_str,
                 read_from,

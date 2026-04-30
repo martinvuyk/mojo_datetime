@@ -1,6 +1,6 @@
 [workspace]
 authors = ["martinvuyk"]
-channels = ["https://conda.modular.com/max-nightly", "conda-forge"]
+channels = ["https://conda.modular.com/max", "conda-forge"]
 preview = ["pixi-build"]
 name = "mojo_datetime"
 platforms = ["osx-arm64", "linux-aarch64", "linux-64"]
@@ -19,7 +19,7 @@ lint_docs = { cmd = "mojo doc --Werror --diagnose-missing-doc-strings -o /dev/nu
 upgrade = { cmd = "pixi update && pixi upgrade && pixi install"}
 
 [dependencies]
-mojo = ">=1.0.0b1.dev2026043006,<2"
+mojo = ">=0.26.2,<2"
 
 [package]
 name = "mojo_datetime"
@@ -29,10 +29,10 @@ version = "0.1.0"
 backend = { name = "pixi-build-mojo", version = "0.1.*" }
 
 [package.host-dependencies]
-mojo-compiler = ">=1.0.0b1.dev2026043006,<2"
+mojo-compiler = ">=0.26.2,<2"
 
 [package.build-dependencies]
-mojo-compiler = ">=1.0.0b1.dev2026043006,<2"
+mojo-compiler = ">=0.26.2,<2"
 
 [package.run-dependencies]
-mojo-compiler = ">=1.0.0b1.dev2026043006,<2"
+mojo-compiler = ">=0.26.2,<2"
