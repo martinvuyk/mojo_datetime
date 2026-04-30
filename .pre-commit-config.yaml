@@ -3,7 +3,7 @@ repos:
     hooks:
       - id: format
         name: format
-        entry: pixi run format
+        entry: pixi run mojo format
         language: system
         files: '^.*\.mojo$'
         stages: [pre-commit]

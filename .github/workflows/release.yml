@@ -9,7 +9,6 @@ permissions:
 jobs:
   release-github:
     name: Upload to release
-    needs: package
     runs-on: ubuntu-latest
     steps:
       - name: Get the version
