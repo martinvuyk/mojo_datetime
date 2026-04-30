@@ -1,7 +1,7 @@
 name: Upgrade nightly version
 on:
   schedule:
-    - cron: 5 */12 * * *  # At 5 minutes past the hour, every 12 hours
+    - cron: 5 0 * * *  # At 12:05 AM
   workflow_call:
   workflow_dispatch:
 
@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  pixi-update:
+  pixi-upgrade:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -29,5 +29,5 @@ jobs:
       - name: Commit and Push
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "Auto-update: changes from workflow"
+          commit_message: "Update lockfile to latest Mojo version"
           branch: main
