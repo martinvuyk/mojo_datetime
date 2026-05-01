@@ -28,8 +28,18 @@ if [[ $# -gt 0 ]]; then
 fi
 BENCH_PATH=$( realpath ${BENCH_PATH} )
 
+# Pin to a single core if `taskset` is available — cuts inter-rep variance
+# from scheduler migration. Override the core with BENCH_CORE=N. Skip with
+# BENCH_NO_PIN=1 for environments where pinning is not desired.
+BENCH_CORE="${BENCH_CORE:-2}"
+PIN=""
+if [[ -z "${BENCH_NO_PIN:-}" ]] && command -v taskset > /dev/null; then
+  PIN="taskset -c ${BENCH_CORE}"
+  echo "Pinning to CPU ${BENCH_CORE} via taskset (set BENCH_NO_PIN=1 to skip)"
+fi
+
 echo "Running the benchmarks"
 for f in $( find $BENCH_PATH -name 'bench_*.mojo' ); do
   echo "==> $f"
-  mojo run -O3 $f
+  ${PIN} mojo run -O3 $f
 done

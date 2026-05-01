@@ -57,9 +57,10 @@ from mojo_datetime.locale import (
 from mojo_datetime._tz_naive_datetime import _TzNaiveDateTime
 from mojo_datetime.zoneinfo import gregorian_zoneinfo
 
-comptime BATCH = 1000
-"""Inner-loop batch size: amortizes per-iteration timer overhead for the
-sub-microsecond ops we're measuring."""
+comptime BATCH = 10_000
+"""Inner-loop batch size: amortizes per-iteration timer overhead and
+scheduler jitter. With sub-microsecond ops, larger batches give a better
+signal-to-noise ratio at the cost of longer total runtime."""
 
 comptime FIXED_DT = _TzNaiveDateTime[PythonCalendar]({2026, 4, 28, 15, 30, 45})
 """A reference datetime used by every benchmark."""
@@ -287,9 +288,17 @@ def bench_parse_locale_short_libc(mut b: Bencher) raises:
 
 def main() raises:
     # 25 repetitions × ~5 s each gives the harness enough samples to expose
-    # >5% deltas above the host noise floor. See module docstring for tips on
-    # quieting the host before trusting absolute numbers.
-    var m = Bench(BenchConfig(num_repetitions=25, max_runtime_secs=5.0))
+    # >5% deltas above the host noise floor. 50 warmup iters (vs. the 10
+    # default) make sure caches and branch predictors are warm before the
+    # first timed sample. See module docstring for tips on quieting the
+    # host before trusting absolute numbers.
+    var m = Bench(
+        BenchConfig(
+            num_repetitions=25,
+            max_runtime_secs=5.0,
+            num_warmup_iters=50,
+        )
+    )
 
     # Each call_fn batches BATCH ops, so per-batch throughput in elements/s
     # gives us a single-figure ns-per-op number.
