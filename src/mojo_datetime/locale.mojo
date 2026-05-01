@@ -238,7 +238,7 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         ...
 
@@ -270,7 +270,7 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         ...
 
@@ -302,7 +302,7 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         ...
 
@@ -334,7 +334,7 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         ...
 
@@ -366,7 +366,7 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         ...
 
@@ -398,7 +398,7 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
             calendar: The calendar to use.
 
         Returns:
-            The format string slice (no allocation).
+            The format string slice.
 
         Notes:
             This function is the only one allowed to recursively target other
@@ -413,7 +413,7 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
             calendar: The calendar to use.
 
         Returns:
-            The format string slice (no allocation).
+            The format string slice.
         """
         ...
 
@@ -424,7 +424,7 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
             calendar: The calendar to use.
 
         Returns:
-            The format string slice (no allocation).
+            The format string slice.
         """
         ...
 
@@ -552,7 +552,7 @@ struct LibCLocale(DTLocale):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         var dow = DayOfWeek(dt)
         comptime for i in range(7):
@@ -597,7 +597,7 @@ struct LibCLocale(DTLocale):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         var dow = DayOfWeek(dt)
         comptime for i in range(7):
@@ -642,7 +642,7 @@ struct LibCLocale(DTLocale):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         return self._get_langinfo(_ABMON_1 + Int32(dt.dt.month) - 1)
 
@@ -679,7 +679,7 @@ struct LibCLocale(DTLocale):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         return self._get_langinfo(_MON_1 + Int32(dt.dt.month) - 1)
 
@@ -716,7 +716,7 @@ struct LibCLocale(DTLocale):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         comptime middle = (dt.calendar.max_hour - dt.calendar.min_hour + 1) // 2
         var item = _PM_STR if dt.dt.hour >= middle else _AM_STR
@@ -758,7 +758,7 @@ struct LibCLocale(DTLocale):
             calendar: The calendar to use.
 
         Returns:
-            The format string slice (no allocation).
+            The format string slice.
 
         Notes:
             This function is the only one allowed to recursively target other
@@ -773,7 +773,7 @@ struct LibCLocale(DTLocale):
             calendar: The calendar to use.
 
         Returns:
-            The format string slice (no allocation).
+            The format string slice.
         """
         return self._get_langinfo(_D_FMT)
 
@@ -784,7 +784,7 @@ struct LibCLocale(DTLocale):
             calendar: The calendar to use.
 
         Returns:
-            The format string slice (no allocation).
+            The format string slice.
         """
         return self._get_langinfo(_T_FMT)
 
@@ -851,7 +851,7 @@ trait NativeDTLocale(DTLocale):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         var dow = DayOfWeek(dt)
         comptime for i in range(7):
@@ -897,7 +897,7 @@ trait NativeDTLocale(DTLocale):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         var dow = DayOfWeek(dt)
         comptime for i in range(7):
@@ -944,7 +944,7 @@ trait NativeDTLocale(DTLocale):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
@@ -998,7 +998,7 @@ trait NativeDTLocale(DTLocale):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
@@ -1053,7 +1053,7 @@ trait NativeDTLocale(DTLocale):
             dt: The datetime.
 
         Returns:
-            The string slice (no allocation).
+            The string slice.
         """
         comptime middle = (dt.calendar.max_hour - dt.calendar.min_hour + 1) // 2
         return _to_imm_slice(Self.AM if dt.dt.hour < middle else Self.PM)
@@ -1092,7 +1092,7 @@ trait NativeDTLocale(DTLocale):
             calendar: The calendar to use.
 
         Returns:
-            The format string slice (no allocation).
+            The format string slice.
 
         Notes:
             This function is the only one allowed to recursively target other
@@ -1108,7 +1108,7 @@ trait NativeDTLocale(DTLocale):
             calendar: The calendar to use.
 
         Returns:
-            The format string slice (no allocation).
+            The format string slice.
         """
         return _to_imm_slice(Self.date_fmt_str)
 
@@ -1120,7 +1120,7 @@ trait NativeDTLocale(DTLocale):
             calendar: The calendar to use.
 
         Returns:
-            The format string slice (no allocation).
+            The format string slice.
         """
         return _to_imm_slice(Self.time_fmt_str)
 
