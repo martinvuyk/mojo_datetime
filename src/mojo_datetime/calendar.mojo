@@ -109,17 +109,23 @@ struct _NaiveDateTime(Comparable, ImplicitlyCopyable, Writable):
         Returns:
             Bool.
         """
-        return (
-            self.year < other.year
-            and self.month < other.month
-            and self.day < other.day
-            and self.hour < other.hour
-            and self.minute < other.minute
-            and self.second < other.second
-            and self.m_second < other.m_second
-            and self.u_second < other.u_second
-            and self.n_second < other.n_second
-        )
+        if self.year != other.year:
+            return self.year < other.year
+        if self.month != other.month:
+            return self.month < other.month
+        if self.day != other.day:
+            return self.day < other.day
+        if self.hour != other.hour:
+            return self.hour < other.hour
+        if self.minute != other.minute:
+            return self.minute < other.minute
+        if self.second != other.second:
+            return self.second < other.second
+        if self.m_second != other.m_second:
+            return self.m_second < other.m_second
+        if self.u_second != other.u_second:
+            return self.u_second < other.u_second
+        return self.n_second < other.n_second
 
 
 # ===----------------------------------------------------------------------=== #
