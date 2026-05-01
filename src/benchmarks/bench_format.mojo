@@ -159,6 +159,13 @@ def bench_write_locale_short_libc(mut b: Bencher) raises:
 
     The libc path is the worst-case allocator user pre-PR (every nl_langinfo
     return was wrapped in `String`).
+
+    The per-iteration `loc.copy()` invokes `duplocale` via FFI on every call.
+    This is part of the real API cost: `_write_to` consumes its `Optional`
+    locale argument, so any caller holding a persistent locale must copy it
+    per call. The absolute number for libc benches therefore includes this
+    overhead, but it is constant across branches, so deltas (e.g. for the
+    DTLocale slice-return change) remain comparable.
     """
     var loc = LibCLocale("C")
     comptime fmt = "%a %d %b %Y %H:%M:%S"
