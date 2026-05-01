@@ -255,7 +255,7 @@ struct DayOfWeek[calendar: Calendar = PythonCalendar](
 
 struct DateTime[
     timezone: TimeZone = TZ_UTC, calendar: Calendar = PythonCalendar
-](Comparable, ImplicitlyCopyable, Writable):
+](Comparable, ImplicitlyCopyable, TrivialRegisterPassable, Writable):
     """Custom `Calendar` and `TimeZone` may be passed in.
     By default, it uses `PythonCalendar` which is a Gregorian
     calendar with its given epoch and max year:
@@ -280,6 +280,8 @@ struct DateTime[
     - Notes:
         The Default `DateTime` hash has only microsecond resolution.
     """
+
+    comptime __copy_ctor_is_trivial = True
 
     var year: UInt16
     """The Year."""
