@@ -15,6 +15,23 @@
 Run via the `bench` pixi task. Use this baseline to measure the impact of
 optimizations to the format / parse pipeline (e.g. the `DTLocale` slice-return
 change) by comparing results across branches.
+
+# Reproducibility
+
+These ops are sub-microsecond, so noise from the host (CPU frequency scaling,
+turbo, scheduler jitter, sibling load) easily swamps a 10-30% real change.
+For a meaningful comparison across branches:
+
+- Pin to a single physical core: `taskset -c 2 pixi run bench`.
+- Set the governor to performance (root):
+  `cpupower frequency-set -g performance`.
+- Disable turbo to avoid frequency drift between repetitions:
+  `echo 1 | sudo tee /sys/devices/system/cpu/intel_pstate/no_turbo`.
+- Quiesce the box (close browser/IDE/sync clients).
+- Run the bench three times back-to-back; trust the median per row.
+
+Without those, treat the absolute numbers as soft and only compare
+order-of-magnitude differences.
 """
 
 from std.benchmark import (
@@ -22,6 +39,9 @@ from std.benchmark import (
     BenchConfig,
     Bencher,
     BenchId,
+    BenchMetric,
+    ThroughputMeasure,
+    black_box,
     keep,
 )
 
@@ -49,16 +69,20 @@ comptime FIXED_DT = _TzNaiveDateTime[PythonCalendar]({2026, 4, 28, 15, 30, 45})
 # ===----------------------------------------------------------------------=== #
 
 
+comptime FIXED_DT_TZ = DateTime(2026, 4, 28, 15, 30, 45)
+"""TZ-aware reference datetime used by the ISO write benchmark."""
+
+
 @parameter
 def bench_write_iso(mut b: Bencher) raises:
     """ISO-8601 datetime with TZ designator: no locale-aware codes."""
-    var dt = DateTime(2026, 4, 28, 15, 30, 45)
     comptime fmt = IsoFormat.YYYY_MM_DD_T_HH_MM_SS_TZD
 
     @always_inline
     @parameter
     def call_fn() raises:
         for _ in range(BATCH):
+            var dt = black_box(FIXED_DT_TZ)
             var out = String()
             dt.write_to[fmt](out)
             keep(out.byte_length())
@@ -73,13 +97,13 @@ def bench_write_locale_short_native(mut b: Bencher) raises:
     Exercises `%a` and `%b` which call into `DTLocale.day_of_week_short` and
     `month_short`. Pre-PR these allocated; post-PR they return slices.
     """
-    var dt = FIXED_DT
     comptime fmt = "%a %d %b %Y %H:%M:%S"
 
     @always_inline
     @parameter
     def call_fn() raises:
         for _ in range(BATCH):
+            var dt = black_box(FIXED_DT)
             var out = String()
             _write_to[fmt, "", GenericEnglishDTLocale](
                 out, dt, {}, GenericEnglishDTLocale()
@@ -95,13 +119,13 @@ def bench_write_locale_long_native(mut b: Bencher) raises:
 
     Exercises `%A`, `%B`, and `%p`.
     """
-    var dt = FIXED_DT
     comptime fmt = "%A %d %B %Y %I:%M:%S %p"
 
     @always_inline
     @parameter
     def call_fn() raises:
         for _ in range(BATCH):
+            var dt = black_box(FIXED_DT)
             var out = String()
             _write_to[fmt, "", GenericEnglishDTLocale](
                 out, dt, {}, GenericEnglishDTLocale()
@@ -114,13 +138,13 @@ def bench_write_locale_long_native(mut b: Bencher) raises:
 @parameter
 def bench_write_locale_short_spanish(mut b: Bencher) raises:
     """Short locale-aware format using a non-default native locale."""
-    var dt = FIXED_DT
     comptime fmt = "%a %d %b %Y %H:%M:%S"
 
     @always_inline
     @parameter
     def call_fn() raises:
         for _ in range(BATCH):
+            var dt = black_box(FIXED_DT)
             var out = String()
             _write_to[fmt, "", SpanishDTLocale](out, dt, {}, SpanishDTLocale())
             keep(out.byte_length())
@@ -135,7 +159,6 @@ def bench_write_locale_short_libc(mut b: Bencher) raises:
     The libc path is the worst-case allocator user pre-PR (every nl_langinfo
     return was wrapped in `String`).
     """
-    var dt = FIXED_DT
     var loc = LibCLocale("C")
     comptime fmt = "%a %d %b %Y %H:%M:%S"
 
@@ -143,6 +166,7 @@ def bench_write_locale_short_libc(mut b: Bencher) raises:
     @parameter
     def call_fn() raises:
         for _ in range(BATCH):
+            var dt = black_box(FIXED_DT)
             var out = String()
             _write_to[fmt, "", LibCLocale](out, dt, {}, loc.copy())
             keep(out.byte_length())
@@ -155,13 +179,13 @@ def bench_write_locale_short_libc(mut b: Bencher) raises:
 def bench_write_locale_c_recursion_native(mut b: Bencher) raises:
     """`%c` triggers `datetime_fmt[calendar]()` and recurses through several
     locale-aware codes. The deepest format hot path."""
-    var dt = FIXED_DT
     comptime fmt = "%c"
 
     @always_inline
     @parameter
     def call_fn() raises:
         for _ in range(BATCH):
+            var dt = black_box(FIXED_DT)
             var out = String()
             _write_to[fmt, "", GenericEnglishDTLocale](
                 out, dt, {}, GenericEnglishDTLocale()
@@ -186,7 +210,8 @@ def bench_parse_iso(mut b: Bencher) raises:
     @parameter
     def call_fn() raises:
         for _ in range(BATCH):
-            var dt = DateTime.parse[fmt](src)
+            var s = black_box(src)
+            var dt = DateTime.parse[fmt](s)
             keep(Int(dt.year))
 
     b.iter[call_fn]()
@@ -203,9 +228,10 @@ def bench_parse_locale_short_native(mut b: Bencher) raises:
     @parameter
     def call_fn() raises:
         for _ in range(BATCH):
+            var s = black_box(src)
             var dt = _parse[
                 fmt, PythonCalendar, gregorian_zoneinfo, GenericEnglishDTLocale
-            ](src, GenericEnglishDTLocale())
+            ](s, GenericEnglishDTLocale())
             keep(Int(dt.dt.year))
 
     b.iter[call_fn]()
@@ -222,9 +248,10 @@ def bench_parse_locale_long_native(mut b: Bencher) raises:
     @parameter
     def call_fn() raises:
         for _ in range(BATCH):
+            var s = black_box(src)
             var dt = _parse[
                 fmt, PythonCalendar, gregorian_zoneinfo, GenericEnglishDTLocale
-            ](src, GenericEnglishDTLocale())
+            ](s, GenericEnglishDTLocale())
             keep(Int(dt.dt.year))
 
     b.iter[call_fn]()
@@ -242,9 +269,10 @@ def bench_parse_locale_short_libc(mut b: Bencher) raises:
     @parameter
     def call_fn() raises:
         for _ in range(BATCH):
+            var s = black_box(src)
             var dt = _parse[
                 fmt, PythonCalendar, gregorian_zoneinfo, LibCLocale
-            ](src, loc.copy())
+            ](s, loc.copy())
             keep(Int(dt.dt.year))
 
     b.iter[call_fn]()
@@ -258,34 +286,41 @@ def bench_parse_locale_short_libc(mut b: Bencher) raises:
 
 
 def main() raises:
-    var m = Bench(BenchConfig(num_repetitions=5))
+    # 25 repetitions × ~5 s each gives the harness enough samples to expose
+    # >5% deltas above the host noise floor. See module docstring for tips on
+    # quieting the host before trusting absolute numbers.
+    var m = Bench(BenchConfig(num_repetitions=25, max_runtime_secs=5.0))
 
-    m.bench_function[bench_write_iso](BenchId("write_iso"))
+    # Each call_fn batches BATCH ops, so per-batch throughput in elements/s
+    # gives us a single-figure ns-per-op number.
+    var tput = [ThroughputMeasure(BenchMetric.elements, BATCH)]
+
+    m.bench_function[bench_write_iso](BenchId("write_iso"), tput.copy())
     m.bench_function[bench_write_locale_short_native](
-        BenchId("write_locale_short_native_en")
+        BenchId("write_locale_short_native_en"), tput.copy()
     )
     m.bench_function[bench_write_locale_long_native](
-        BenchId("write_locale_long_native_en")
+        BenchId("write_locale_long_native_en"), tput.copy()
     )
     m.bench_function[bench_write_locale_short_spanish](
-        BenchId("write_locale_short_native_es")
+        BenchId("write_locale_short_native_es"), tput.copy()
     )
     m.bench_function[bench_write_locale_short_libc](
-        BenchId("write_locale_short_libc_C")
+        BenchId("write_locale_short_libc_C"), tput.copy()
     )
     m.bench_function[bench_write_locale_c_recursion_native](
-        BenchId("write_locale_c_recursion_native_en")
+        BenchId("write_locale_c_recursion_native_en"), tput.copy()
     )
 
-    m.bench_function[bench_parse_iso](BenchId("parse_iso"))
+    m.bench_function[bench_parse_iso](BenchId("parse_iso"), tput.copy())
     m.bench_function[bench_parse_locale_short_native](
-        BenchId("parse_locale_short_native_en")
+        BenchId("parse_locale_short_native_en"), tput.copy()
     )
     m.bench_function[bench_parse_locale_long_native](
-        BenchId("parse_locale_long_native_en")
+        BenchId("parse_locale_long_native_en"), tput.copy()
     )
     m.bench_function[bench_parse_locale_short_libc](
-        BenchId("parse_locale_short_libc_C")
+        BenchId("parse_locale_short_libc_C"), tput^
     )
 
     print(m)
