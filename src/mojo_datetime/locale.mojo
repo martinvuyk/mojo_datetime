@@ -26,6 +26,20 @@ from .zoneinfo import UTCZoneInfo
 from ._tz_naive_datetime import _TzNaiveDateTime
 
 
+comptime ImmSlice = StringSlice[ImmutAnyOrigin]
+"""A type alias for an immutable, any-origin string slice."""
+
+
+comptime _MN = Tuple[Int, StaticString]
+"""(month_number, name) entry for locale month-name tables."""
+
+
+@always_inline
+def _to_imm_slice(s: StaticString) -> ImmSlice:
+    """Widen a `StaticString` to `ImmSlice` without allocation."""
+    return rebind[ImmSlice](s)
+
+
 # ===----------------------------------------------------------------------=== #
 # Supported format codes
 # ===----------------------------------------------------------------------=== #
@@ -217,14 +231,14 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
     """A trait to provide a locale that helps in stringifying values with
     region-specific characteristics."""
 
-    def day_of_week_short(self, dt: _TzNaiveDateTime) -> String:
+    def day_of_week_short(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """The day of the week as locale's abbreviated name.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         ...
 
@@ -249,14 +263,14 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
         """
         ...
 
-    def day_of_week_long(self, dt: _TzNaiveDateTime) -> String:
+    def day_of_week_long(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """The day of the week as locale's full name.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         ...
 
@@ -281,14 +295,14 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
         """
         ...
 
-    def month_short(self, dt: _TzNaiveDateTime) -> String:
+    def month_short(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """Month as locale's abbreviated name.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         ...
 
@@ -313,14 +327,14 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
         """
         ...
 
-    def month_long(self, dt: _TzNaiveDateTime) -> String:
+    def month_long(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """Month as locale's full name.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         ...
 
@@ -345,14 +359,14 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
         """
         ...
 
-    def am_pm(self, dt: _TzNaiveDateTime) -> String:
+    def am_pm(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """Locale's equivalent of either AM or PM.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         ...
 
@@ -377,14 +391,14 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
         """
         ...
 
-    def datetime_fmt[calendar: Calendar](self) -> String:
+    def datetime_fmt[calendar: Calendar](self) -> ImmSlice:
         """Format string for locale's date and time representation.
 
         Parameters:
             calendar: The calendar to use.
 
         Returns:
-            The format string.
+            The format string slice (no allocation).
 
         Notes:
             This function is the only one allowed to recursively target other
@@ -392,25 +406,25 @@ trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
         """
         ...
 
-    def date_fmt[calendar: Calendar](self) -> String:
+    def date_fmt[calendar: Calendar](self) -> ImmSlice:
         """Format string for locale's date representation.
 
         Parameters:
             calendar: The calendar to use.
 
         Returns:
-            The format string.
+            The format string slice (no allocation).
         """
         ...
 
-    def time_fmt[calendar: Calendar](self) -> String:
+    def time_fmt[calendar: Calendar](self) -> ImmSlice:
         """Format string for locale's time representation.
 
         Parameters:
             calendar: The calendar to use.
 
         Returns:
-            The format string.
+            The format string slice (no allocation).
         """
         ...
 
@@ -531,23 +545,23 @@ struct LibCLocale(DTLocale):
         ](item, self._loc)
         return StringSlice(unsafe_from_utf8_ptr=c_str)
 
-    def day_of_week_short(self, dt: _TzNaiveDateTime) -> String:
+    def day_of_week_short(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """The day of the week as locale's abbreviated name.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         var dow = DayOfWeek(dt)
         comptime for i in range(7):
             comptime day = _posix_days[dt.calendar][i]
             if dow == day:
-                return String(self._get_langinfo(_ABDAY_1 + Int32(i)))
+                return self._get_langinfo(_ABDAY_1 + Int32(i))
 
         assert False, String(t"Unknown day of the week for datetime: {dt}")
-        return String(self._get_langinfo(_ABDAY_1 + 6))
+        return self._get_langinfo(_ABDAY_1 + 6)
 
     def parse_day_of_week_short[
         calendar: Calendar
@@ -576,23 +590,23 @@ struct LibCLocale(DTLocale):
 
         raise DTFormatSpecParsingError()
 
-    def day_of_week_long(self, dt: _TzNaiveDateTime) -> String:
+    def day_of_week_long(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """The day of the week as locale's full name.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         var dow = DayOfWeek(dt)
         comptime for i in range(7):
             comptime day = _posix_days[dt.calendar][i]
             if dow == day:
-                return String(self._get_langinfo(_DAY_1 + Int32(i)))
+                return self._get_langinfo(_DAY_1 + Int32(i))
 
         assert False, String(t"Unknown day of the week for datetime: {dt}")
-        return String(self._get_langinfo(_DAY_1 + 6))
+        return self._get_langinfo(_DAY_1 + 6)
 
     def parse_day_of_week_long[
         calendar: Calendar
@@ -621,16 +635,16 @@ struct LibCLocale(DTLocale):
 
         raise DTFormatSpecParsingError()
 
-    def month_short(self, dt: _TzNaiveDateTime) -> String:
+    def month_short(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """Month as locale's abbreviated name.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
-        return String(self._get_langinfo(_ABMON_1 + Int32(dt.dt.month) - 1))
+        return self._get_langinfo(_ABMON_1 + Int32(dt.dt.month) - 1)
 
     def parse_month_short[
         calendar: Calendar
@@ -658,16 +672,16 @@ struct LibCLocale(DTLocale):
 
         raise DTFormatSpecParsingError()
 
-    def month_long(self, dt: _TzNaiveDateTime) -> String:
+    def month_long(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """Month as locale's full name.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
-        return String(self._get_langinfo(_MON_1 + Int32(dt.dt.month) - 1))
+        return self._get_langinfo(_MON_1 + Int32(dt.dt.month) - 1)
 
     def parse_month_long[
         calendar: Calendar
@@ -695,18 +709,18 @@ struct LibCLocale(DTLocale):
 
         raise DTFormatSpecParsingError()
 
-    def am_pm(self, dt: _TzNaiveDateTime) -> String:
+    def am_pm(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """Locale's equivalent of either AM or PM.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         comptime middle = (dt.calendar.max_hour - dt.calendar.min_hour + 1) // 2
         var item = _PM_STR if dt.dt.hour >= middle else _AM_STR
-        return String(self._get_langinfo(item))
+        return self._get_langinfo(item)
 
     def parse_am_pm[
         calendar: Calendar
@@ -737,42 +751,42 @@ struct LibCLocale(DTLocale):
 
         raise DTFormatSpecParsingError()
 
-    def datetime_fmt[calendar: Calendar](self) -> String:
+    def datetime_fmt[calendar: Calendar](self) -> ImmSlice:
         """Format string for locale's date and time representation.
 
         Parameters:
             calendar: The calendar to use.
 
         Returns:
-            The format string.
+            The format string slice (no allocation).
 
         Notes:
             This function is the only one allowed to recursively target other
             locale-aware format codes.
         """
-        return String(self._get_langinfo(_D_T_FMT))
+        return self._get_langinfo(_D_T_FMT)
 
-    def date_fmt[calendar: Calendar](self) -> String:
+    def date_fmt[calendar: Calendar](self) -> ImmSlice:
         """Format string for locale's date representation.
 
         Parameters:
             calendar: The calendar to use.
 
         Returns:
-            The format string.
+            The format string slice (no allocation).
         """
-        return String(self._get_langinfo(_D_FMT))
+        return self._get_langinfo(_D_FMT)
 
-    def time_fmt[calendar: Calendar](self) -> String:
+    def time_fmt[calendar: Calendar](self) -> ImmSlice:
         """Format string for locale's time representation.
 
         Parameters:
             calendar: The calendar to use.
 
         Returns:
-            The format string.
+            The format string slice (no allocation).
         """
-        return String(self._get_langinfo(_T_FMT))
+        return self._get_langinfo(_T_FMT)
 
 
 # ===----------------------------------------------------------------------=== #
@@ -795,59 +809,59 @@ trait NativeDTLocale(DTLocale):
     locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: InlineArray[StaticString, 7] = [
         "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: InlineArray[StaticString, 7] = [
         "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satday",
         "Sunday"
     ]
     """Names for the days of the week starting on monday."""
-    comptime month_names_short: List[Tuple[Int, String]] = [
-        (1, "Jan"), (2, "Feb"), (3, "Mar"), (4, "Apr"), (5, "May"), (6, "Jun"),
-        (7, "Jul"), (8, "Aug"), (9, "Sep"), (10, "Oct"), (11, "Nov"),
-        (12, "Dec"),
+    comptime month_names_short: List[Tuple[Int, StaticString]] = [
+        _MN(1, "Jan"), _MN(2, "Feb"), _MN(3, "Mar"), _MN(4, "Apr"), _MN(5, "May"), _MN(6, "Jun"),
+        _MN(7, "Jul"), _MN(8, "Aug"), _MN(9, "Sep"), _MN(10, "Oct"), _MN(11, "Nov"),
+        _MN(12, "Dec"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
-    comptime month_names_long: List[Tuple[Int, String]] = [
-        (1, "January"), (2, "February"), (3, "March"), (4, "April"), (5, "May"),
-        (6, "June"), (7, "July"), (8, "August"), (9, "September"),
-        (10, "October"), (11, "November"), (12, "December"),
+    comptime month_names_long: List[Tuple[Int, StaticString]] = [
+        _MN(1, "January"), _MN(2, "February"), _MN(3, "March"), _MN(4, "April"), _MN(5, "May"),
+        _MN(6, "June"), _MN(7, "July"), _MN(8, "August"), _MN(9, "September"),
+        _MN(10, "October"), _MN(11, "November"), _MN(12, "December"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
-    comptime AM: String = "AM"
+    comptime AM: StaticString = "AM"
     """String for AM."""
-    comptime PM: String = "PM"
+    comptime PM: StaticString = "PM"
     """String for PM."""
-    comptime datetime_fmt_str: String = "%a, %d %b %Y %H:%M:%S %z"
+    comptime datetime_fmt_str: StaticString = "%a, %d %b %Y %H:%M:%S %z"
     """Format string for locale's date and time representation."""
-    comptime date_fmt_str: String = "%d/%m/%Y"
+    comptime date_fmt_str: StaticString = "%d/%m/%Y"
     """Format string for locale's date representation."""
-    comptime time_fmt_str: String = "%H:%M:%S"
+    comptime time_fmt_str: StaticString = "%H:%M:%S"
     """Format string for locale's time representation."""
 
-    def day_of_week_short(self, dt: _TzNaiveDateTime) -> String:
+    def day_of_week_short(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """The day of the week as locale's abbreviated name.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         var dow = DayOfWeek(dt)
         comptime for i in range(7):
             comptime dow_str = Self.day_of_week_names_short[i]
             comptime day = _days[dt.calendar][i]
             if dow == day:
-                return dow_str
+                return _to_imm_slice(dow_str)
         assert False, String(t"Unknown day of the week for datetime: {dt}")
         comptime sunday = Self.day_of_week_names_short[6]
-        return sunday
+        return _to_imm_slice(sunday)
 
     def parse_day_of_week_short[
         calendar: Calendar
@@ -876,25 +890,25 @@ trait NativeDTLocale(DTLocale):
 
         raise DTFormatSpecParsingError()
 
-    def day_of_week_long(self, dt: _TzNaiveDateTime) -> String:
+    def day_of_week_long(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """The day of the week as locale's full name.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         var dow = DayOfWeek(dt)
         comptime for i in range(7):
             comptime dow_str = Self.day_of_week_names_long[i]
             comptime day = _days[dt.calendar][i]
             if dow == day:
-                return dow_str
+                return _to_imm_slice(dow_str)
 
         assert False, String(t"Unknown day of the week for datetime: {dt}")
         comptime sunday = Self.day_of_week_names_long[6]
-        return sunday
+        return _to_imm_slice(sunday)
 
     def parse_day_of_week_long[
         calendar: Calendar
@@ -923,14 +937,14 @@ trait NativeDTLocale(DTLocale):
 
         raise DTFormatSpecParsingError()
 
-    def month_short(self, dt: _TzNaiveDateTime) -> String:
+    def month_short(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """Month as locale's abbreviated name.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
@@ -939,13 +953,13 @@ trait NativeDTLocale(DTLocale):
         comptime for i in range(len(Self.month_names_short)):
             comptime mon_num, mon_str = Self.month_names_short[i]
             if dt.dt.month == UInt8(mon_num):
-                return mon_str
+                return _to_imm_slice(mon_str)
 
         assert False, String(t"Unknown month for datetime: {dt}")
         comptime _, last = Self.month_names_short[
             len(Self.month_names_short) - 1
         ]
-        return last
+        return _to_imm_slice(last)
 
     def parse_month_short[
         calendar: Calendar
@@ -977,14 +991,14 @@ trait NativeDTLocale(DTLocale):
 
         raise DTFormatSpecParsingError()
 
-    def month_long(self, dt: _TzNaiveDateTime) -> String:
+    def month_long(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """Month as locale's full name.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
@@ -993,13 +1007,13 @@ trait NativeDTLocale(DTLocale):
         comptime for i in range(len(Self.month_names_long)):
             comptime mon_num, mon_str = Self.month_names_long[i]
             if dt.dt.month == UInt8(mon_num):
-                return mon_str
+                return _to_imm_slice(mon_str)
 
         assert False, String(t"Unknown month for datetime: {dt}")
         comptime _, last = Self.month_names_short[
             len(Self.month_names_short) - 1
         ]
-        return last
+        return _to_imm_slice(last)
 
     def parse_month_long[
         calendar: Calendar
@@ -1032,17 +1046,17 @@ trait NativeDTLocale(DTLocale):
         raise DTFormatSpecParsingError()
 
     @always_inline
-    def am_pm(self, dt: _TzNaiveDateTime) -> String:
+    def am_pm(self, dt: _TzNaiveDateTime) -> ImmSlice:
         """Locale's equivalent of either AM or PM.
 
         Args:
             dt: The datetime.
 
         Returns:
-            The string.
+            The string slice (no allocation).
         """
         comptime middle = (dt.calendar.max_hour - dt.calendar.min_hour + 1) // 2
-        return Self.AM if dt.dt.hour < middle else Self.PM
+        return _to_imm_slice(Self.AM if dt.dt.hour < middle else Self.PM)
 
     @always_inline
     def parse_am_pm[
@@ -1071,44 +1085,44 @@ trait NativeDTLocale(DTLocale):
         raise DTFormatSpecParsingError()
 
     @always_inline
-    def datetime_fmt[calendar: Calendar](self) -> String:
+    def datetime_fmt[calendar: Calendar](self) -> ImmSlice:
         """Format string for locale's date and time representation.
 
         Parameters:
             calendar: The calendar to use.
 
         Returns:
-            The format string.
+            The format string slice (no allocation).
 
         Notes:
             This function is the only one allowed to recursively target other
             locale-aware format codes.
         """
-        return Self.datetime_fmt_str
+        return _to_imm_slice(Self.datetime_fmt_str)
 
     @always_inline
-    def date_fmt[calendar: Calendar](self) -> String:
+    def date_fmt[calendar: Calendar](self) -> ImmSlice:
         """Format string for locale's date representation.
 
         Parameters:
             calendar: The calendar to use.
 
         Returns:
-            The format string.
+            The format string slice (no allocation).
         """
-        return Self.date_fmt_str
+        return _to_imm_slice(Self.date_fmt_str)
 
     @always_inline
-    def time_fmt[calendar: Calendar](self) -> String:
+    def time_fmt[calendar: Calendar](self) -> ImmSlice:
         """Format string for locale's time representation.
 
         Parameters:
             calendar: The calendar to use.
 
         Returns:
-            The format string.
+            The format string slice (no allocation).
         """
-        return Self.time_fmt_str
+        return _to_imm_slice(Self.time_fmt_str)
 
 
 @fieldwise_init
@@ -1122,9 +1136,9 @@ struct GenericEnglishDTLocale(NativeDTLocale):
 struct USDTLocale(NativeDTLocale):
     """A default US datetime locale."""
 
-    comptime datetime_fmt_str: String = "%a, %b %d %H:%M:%S %Y %z"
+    comptime datetime_fmt_str: StaticString = "%a, %b %d %H:%M:%S %Y %z"
     """Format string for locale's date and time representation."""
-    comptime date_fmt_str: String = "%m/%d/%Y"
+    comptime date_fmt_str: StaticString = "%m/%d/%Y"
     """Format string for locale's date representation."""
 
 
@@ -1133,25 +1147,25 @@ struct SpanishDTLocale(NativeDTLocale):
     """A default Spanish speaking locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: InlineArray[StaticString, 7] = [
         "Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: InlineArray[StaticString, 7] = [
         "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"
     ]
     """Names for the days of the week starting on monday."""
-    comptime month_names_short: List[Tuple[Int, String]] = [
-        (1, "Ene"), (2, "Feb"), (3, "Mar"), (4, "Abr"), (5, "May"), (6, "Jun"),
-        (7, "Jul"), (8, "Ago"), (9, "Sep"), (9, "Set"), (10, "Oct"),
-        (11, "Nov"), (12, "Dic"),
+    comptime month_names_short: List[Tuple[Int, StaticString]] = [
+        _MN(1, "Ene"), _MN(2, "Feb"), _MN(3, "Mar"), _MN(4, "Abr"), _MN(5, "May"), _MN(6, "Jun"),
+        _MN(7, "Jul"), _MN(8, "Ago"), _MN(9, "Sep"), _MN(9, "Set"), _MN(10, "Oct"),
+        _MN(11, "Nov"), _MN(12, "Dic"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
-    comptime month_names_long: List[Tuple[Int, String]] = [
-        (1, "Enero"), (2, "Febrero"), (3, "Marzo"), (4, "Abril"), (5, "Mayo"),
-        (6, "Junio"), (7, "Julio"), (8, "Agosto"), (9, "Septiembre"),
-        (9, "Setiembre"), (10, "Octubre"), (11, "Noviembre"), (12, "Diciembre"),
+    comptime month_names_long: List[Tuple[Int, StaticString]] = [
+        _MN(1, "Enero"), _MN(2, "Febrero"), _MN(3, "Marzo"), _MN(4, "Abril"), _MN(5, "Mayo"),
+        _MN(6, "Junio"), _MN(7, "Julio"), _MN(8, "Agosto"), _MN(9, "Septiembre"),
+        _MN(9, "Setiembre"), _MN(10, "Octubre"), _MN(11, "Noviembre"), _MN(12, "Diciembre"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
@@ -1163,25 +1177,25 @@ struct FrenchDTLocale(NativeDTLocale):
     """A default French speaking locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: InlineArray[StaticString, 7] = [
         "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: InlineArray[StaticString, 7] = [
         "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"
     ]
     """Names for the days of the week starting on monday."""
-    comptime month_names_short: List[Tuple[Int, String]] = [
-        (1, "Janv"), (2, "Févr"), (3, "Mars"), (4, "Avr"), (5, "Mai"),
-        (6, "Juin"), (7, "Juil"), (8, "Août"), (9, "Sept"), (10, "Oct"),
-        (11, "Nov"), (12, "Déc"),
+    comptime month_names_short: List[Tuple[Int, StaticString]] = [
+        _MN(1, "Janv"), _MN(2, "Févr"), _MN(3, "Mars"), _MN(4, "Avr"), _MN(5, "Mai"),
+        _MN(6, "Juin"), _MN(7, "Juil"), _MN(8, "Août"), _MN(9, "Sept"), _MN(10, "Oct"),
+        _MN(11, "Nov"), _MN(12, "Déc"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
-    comptime month_names_long: List[Tuple[Int, String]] = [
-        (1, "Janvier"), (2, "Février"), (3, "Mars"), (4, "Avril"), (5, "Mai"),
-        (6, "Juin"), (7, "Juillet"), (8, "Août"), (9, "Septembre"),
-        (10, "Octobre"), (11, "Novembre"), (12, "Décembre"),
+    comptime month_names_long: List[Tuple[Int, StaticString]] = [
+        _MN(1, "Janvier"), _MN(2, "Février"), _MN(3, "Mars"), _MN(4, "Avril"), _MN(5, "Mai"),
+        _MN(6, "Juin"), _MN(7, "Juillet"), _MN(8, "Août"), _MN(9, "Septembre"),
+        _MN(10, "Octobre"), _MN(11, "Novembre"), _MN(12, "Décembre"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
@@ -1193,26 +1207,26 @@ struct PortugueseDTLocale(NativeDTLocale):
     """A default Portuguese speaking locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: InlineArray[StaticString, 7] = [
         "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: InlineArray[StaticString, 7] = [
         "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", 
         "Sexta-feira", "Sábado", "Domingo"
     ]
     """Names for the days of the week starting on monday."""
-    comptime month_names_short: List[Tuple[Int, String]] = [
-        (1, "Jan"), (2, "Fev"), (3, "Mar"), (4, "Abr"), (5, "Mai"), (6, "Jun"),
-        (7, "Jul"), (8, "Ago"), (9, "Set"), (10, "Out"), (11, "Nov"),
-        (12, "Dez"),
+    comptime month_names_short: List[Tuple[Int, StaticString]] = [
+        _MN(1, "Jan"), _MN(2, "Fev"), _MN(3, "Mar"), _MN(4, "Abr"), _MN(5, "Mai"), _MN(6, "Jun"),
+        _MN(7, "Jul"), _MN(8, "Ago"), _MN(9, "Set"), _MN(10, "Out"), _MN(11, "Nov"),
+        _MN(12, "Dez"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
-    comptime month_names_long: List[Tuple[Int, String]] = [
-        (1, "Janeiro"), (2, "Fevereiro"), (3, "Março"), (4, "Abril"),
-        (5, "Maio"), (6, "Junho"), (7, "Julho"), (8, "Agosto"), (9, "Setembro"),
-        (10, "Outubro"), (11, "Novembro"), (12, "Dezembro"),
+    comptime month_names_long: List[Tuple[Int, StaticString]] = [
+        _MN(1, "Janeiro"), _MN(2, "Fevereiro"), _MN(3, "Março"), _MN(4, "Abril"),
+        _MN(5, "Maio"), _MN(6, "Junho"), _MN(7, "Julho"), _MN(8, "Agosto"), _MN(9, "Setembro"),
+        _MN(10, "Outubro"), _MN(11, "Novembro"), _MN(12, "Dezembro"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
@@ -1224,36 +1238,36 @@ struct ChineseDTLocale(NativeDTLocale):
     """A default Mandarin Chinese locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: InlineArray[StaticString, 7] = [
         "周一", "周二", "周三", "周四", "周五", "周六", "周日"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: InlineArray[StaticString, 7] = [
         "星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"
     ]
     """Names for the days of the week starting on monday."""
-    comptime month_names_short: List[Tuple[Int, String]] = [
-        (1, "1月"), (2, "2月"), (3, "3月"), (4, "4月"), (5, "5月"), (6, "6月"),
-        (7, "7月"), (8, "8月"), (9, "9月"), (10, "10月"), (11, "11月"),
-        (12, "12月"),
+    comptime month_names_short: List[Tuple[Int, StaticString]] = [
+        _MN(1, "1月"), _MN(2, "2月"), _MN(3, "3月"), _MN(4, "4月"), _MN(5, "5月"), _MN(6, "6月"),
+        _MN(7, "7月"), _MN(8, "8月"), _MN(9, "9月"), _MN(10, "10月"), _MN(11, "11月"),
+        _MN(12, "12月"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
-    comptime month_names_long: List[Tuple[Int, String]] = [
-        (1, "一月"), (2, "二月"), (3, "三月"), (4, "四月"), (5, "五月"),
-        (6, "六月"), (7, "七月"), (8, "八月"), (9, "九月"), (10, "十月"),
-        (11, "十一月"), (12, "十二月"),
+    comptime month_names_long: List[Tuple[Int, StaticString]] = [
+        _MN(1, "一月"), _MN(2, "二月"), _MN(3, "三月"), _MN(4, "四月"), _MN(5, "五月"),
+        _MN(6, "六月"), _MN(7, "七月"), _MN(8, "八月"), _MN(9, "九月"), _MN(10, "十月"),
+        _MN(11, "十一月"), _MN(12, "十二月"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
-    comptime AM: String = "上午"
+    comptime AM: StaticString = "上午"
     """String for AM."""
-    comptime PM: String = "下午"
+    comptime PM: StaticString = "下午"
     """String for PM."""
-    comptime datetime_fmt_str: String = "%Y年%m月%d日 %H:%M:%S"
+    comptime datetime_fmt_str: StaticString = "%Y年%m月%d日 %H:%M:%S"
     """Format string for locale's date and time representation."""
-    comptime date_fmt_str: String = "%Y年%m月%d日"
+    comptime date_fmt_str: StaticString = "%Y年%m月%d日"
     """Format string for locale's date representation."""
 
 
@@ -1262,36 +1276,36 @@ struct JapaneseDTLocale(NativeDTLocale):
     """A default Japanese locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: InlineArray[StaticString, 7] = [
         "月", "火", "水", "木", "金", "土", "日"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: InlineArray[StaticString, 7] = [
         "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"
     ]
     """Names for the days of the week starting on monday."""
-    comptime month_names_short: List[Tuple[Int, String]] = [
-        (1, "1月"), (2, "2月"), (3, "3月"), (4, "4月"), (5, "5月"), (6, "6月"),
-        (7, "7月"), (8, "8月"), (9, "9月"), (10, "10月"), (11, "11月"),
-        (12, "12月"),
+    comptime month_names_short: List[Tuple[Int, StaticString]] = [
+        _MN(1, "1月"), _MN(2, "2月"), _MN(3, "3月"), _MN(4, "4月"), _MN(5, "5月"), _MN(6, "6月"),
+        _MN(7, "7月"), _MN(8, "8月"), _MN(9, "9月"), _MN(10, "10月"), _MN(11, "11月"),
+        _MN(12, "12月"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
-    comptime month_names_long: List[Tuple[Int, String]] = [
-        (1, "1月"), (2, "2月"), (3, "3月"), (4, "4月"), (5, "5月"), (6, "6月"),
-        (7, "7月"), (8, "8月"), (9, "9月"), (10, "10月"), (11, "11月"),
-        (12, "12月"),
+    comptime month_names_long: List[Tuple[Int, StaticString]] = [
+        _MN(1, "1月"), _MN(2, "2月"), _MN(3, "3月"), _MN(4, "4月"), _MN(5, "5月"), _MN(6, "6月"),
+        _MN(7, "7月"), _MN(8, "8月"), _MN(9, "9月"), _MN(10, "10月"), _MN(11, "11月"),
+        _MN(12, "12月"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
-    comptime AM: String = "午前"
+    comptime AM: StaticString = "午前"
     """String for AM."""
-    comptime PM: String = "午後"
+    comptime PM: StaticString = "午後"
     """String for PM."""
-    comptime datetime_fmt_str: String = "%Y年%m月%d日 %H時%M分%S秒"
+    comptime datetime_fmt_str: StaticString = "%Y年%m月%d日 %H時%M分%S秒"
     """Format string for locale's date and time representation."""
-    comptime date_fmt_str: String = "%Y/%m/%d"
+    comptime date_fmt_str: StaticString = "%Y/%m/%d"
     """Format string for locale's date representation."""
 
 
@@ -1300,35 +1314,35 @@ struct RussianDTLocale(NativeDTLocale):
     """A default Russian locale favoring format-context (genitive) months."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: InlineArray[StaticString, 7] = [
         "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: InlineArray[StaticString, 7] = [
         "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота",
         "Воскресенье",
     ]
     """Names for the days of the week starting on monday."""
-    comptime month_names_short: List[Tuple[Int, String]] = [
-        (1, "янв"), (2, "фев"), (3, "мар"), (4, "апр"), (5, "мая"), (6, "июн"),
-        (7, "июл"), (8, "авг"), (9, "сен"), (10, "окт"), (11, "ноя"),
-        (12, "дек"),
+    comptime month_names_short: List[Tuple[Int, StaticString]] = [
+        _MN(1, "янв"), _MN(2, "фев"), _MN(3, "мар"), _MN(4, "апр"), _MN(5, "мая"), _MN(6, "июн"),
+        _MN(7, "июл"), _MN(8, "авг"), _MN(9, "сен"), _MN(10, "окт"), _MN(11, "ноя"),
+        _MN(12, "дек"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
-    comptime month_names_long: List[Tuple[Int, String]] = [
-        (1, "января"), (2, "февраля"), (3, "марта"), (4, "апреля"), (5, "мая"),
-        (6, "июня"), (7, "июля"), (8, "августа"), (9, "сентября"),
-        (10, "октября"), (11, "ноября"), (12, "декабря"),
+    comptime month_names_long: List[Tuple[Int, StaticString]] = [
+        _MN(1, "января"), _MN(2, "февраля"), _MN(3, "марта"), _MN(4, "апреля"), _MN(5, "мая"),
+        _MN(6, "июня"), _MN(7, "июля"), _MN(8, "августа"), _MN(9, "сентября"),
+        _MN(10, "октября"), _MN(11, "ноября"), _MN(12, "декабря"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
-    comptime AM: String = "ДП"
+    comptime AM: StaticString = "ДП"
     """String for AM."""
-    comptime PM: String = "ПП"
+    comptime PM: StaticString = "ПП"
     """String for PM."""
-    comptime date_fmt_str: String = "%d.%m.%Y"
+    comptime date_fmt_str: StaticString = "%d.%m.%Y"
     """Format string for locale's date representation."""
 
 
@@ -1337,31 +1351,31 @@ struct HindiDTLocale(NativeDTLocale):
     """A default Hindi locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: InlineArray[StaticString, 7] = [
         "सोम", "मंगल", "बुध", "गुरु", "शुक्र", "शनि", "रवि"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: InlineArray[StaticString, 7] = [
         "सोमवार", "मंगलवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार", "रविवार"
     ]
     """Names for the days of the week starting on monday."""
-    comptime month_names_short: List[Tuple[Int, String]] = [
-        (1, "जन"), (2, "फ़र"), (3, "मार्च"), (4, "अप्रैल"), (5, "मई"), (6, "जून"),
-        (7, "जुल"), (8, "अग"), (9, "सित"), (10, "अक्टू"), (11, "नव"), (12, "दिस"),
+    comptime month_names_short: List[Tuple[Int, StaticString]] = [
+        _MN(1, "जन"), _MN(2, "फ़र"), _MN(3, "मार्च"), _MN(4, "अप्रैल"), _MN(5, "मई"), _MN(6, "जून"),
+        _MN(7, "जुल"), _MN(8, "अग"), _MN(9, "सित"), _MN(10, "अक्टू"), _MN(11, "नव"), _MN(12, "दिस"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
-    comptime month_names_long: List[Tuple[Int, String]] = [
-        (1, "जनवरी"), (2, "फ़रवरी"), (3, "मार्च"), (4, "अप्रैल"), (5, "मई"),
-        (6, "जून"), (7, "जुलाई"), (8, "अगस्त"), (9, "सितंबर"),
-        (10, "अक्टूबर"), (11, "नवंबर"), (12, "दिसंबर"),
+    comptime month_names_long: List[Tuple[Int, StaticString]] = [
+        _MN(1, "जनवरी"), _MN(2, "फ़रवरी"), _MN(3, "मार्च"), _MN(4, "अप्रैल"), _MN(5, "मई"),
+        _MN(6, "जून"), _MN(7, "जुलाई"), _MN(8, "अगस्त"), _MN(9, "सितंबर"),
+        _MN(10, "अक्टूबर"), _MN(11, "नवंबर"), _MN(12, "दिसंबर"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
-    comptime AM: String = "पूर्वाह्न"
+    comptime AM: StaticString = "पूर्वाह्न"
     """String for AM."""
-    comptime PM: String = "अपराह्न"
+    comptime PM: StaticString = "अपराह्न"
     """String for PM."""
 
 
@@ -1370,32 +1384,32 @@ struct ArabicDTLocale(NativeDTLocale):
     """A default Arabic locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: InlineArray[StaticString, 7] = [
         "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: InlineArray[StaticString, 7] = [
         "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"
     ]
     """Names for the days of the week starting on monday."""
-    comptime month_names_short: List[Tuple[Int, String]] = [
-        (1, "يناير"), (2, "فبراير"), (3, "مارس"), (4, "أبريل"), (5, "مايو"),
-        (6, "يونيو"), (7, "يوليو"), (8, "أغسطس"), (9, "سبتمبر"), (10, "أكتوبر"),
-        (11, "نوفمبر"), (12, "ديسمبر"),
+    comptime month_names_short: List[Tuple[Int, StaticString]] = [
+        _MN(1, "يناير"), _MN(2, "فبراير"), _MN(3, "مارس"), _MN(4, "أبريل"), _MN(5, "مايو"),
+        _MN(6, "يونيو"), _MN(7, "يوليو"), _MN(8, "أغسطس"), _MN(9, "سبتمبر"), _MN(10, "أكتوبر"),
+        _MN(11, "نوفمبر"), _MN(12, "ديسمبر"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
-    comptime month_names_long: List[Tuple[Int, String]] = [
-        (1, "يناير"), (2, "فبراير"), (3, "مارس"), (4, "أبريل"), (5, "مايو"),
-        (6, "يونيو"), (7, "يوليو"), (8, "أغسطس"), (9, "سبتمبر"), (10, "أكتوبر"),
-        (11, "نوفمبر"), (12, "ديسمبر"),
+    comptime month_names_long: List[Tuple[Int, StaticString]] = [
+        _MN(1, "يناير"), _MN(2, "فبراير"), _MN(3, "مارس"), _MN(4, "أبريل"), _MN(5, "مايو"),
+        _MN(6, "يونيو"), _MN(7, "يوليو"), _MN(8, "أغسطس"), _MN(9, "سبتمبر"), _MN(10, "أكتوبر"),
+        _MN(11, "نوفمبر"), _MN(12, "ديسمبر"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
-    comptime AM: String = "ص"
+    comptime AM: StaticString = "ص"
     """String for AM."""
-    comptime PM: String = "م"
+    comptime PM: StaticString = "م"
     """String for PM."""
 
 
@@ -1404,32 +1418,32 @@ struct BengaliDTLocale(NativeDTLocale):
     """A default Bengali locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: InlineArray[StaticString, 7] = [
         "সোম", "মঙ্গল", "বুধ", "বৃহস্পতি", "শুক্র", "শনি", "রবি"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: InlineArray[StaticString, 7] = [
         "সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার", "শুক্রবার", "শনিবার", "রবিবার"
     ]
     """Names for the days of the week starting on monday."""
-    comptime month_names_short: List[Tuple[Int, String]] = [
-        (1, "জানু"), (2, "ফেব"), (3, "মার্চ"), (4, "এপ্রিল"), (5, "মে"), (6, "জুন"),
-        (7, "জুল"), (8, "আগস্ট"), (9, "সেপ্টে"), (10, "অক্টো"), (11, "নভে"),
-        (12, "ডিসে"),
+    comptime month_names_short: List[Tuple[Int, StaticString]] = [
+        _MN(1, "জানু"), _MN(2, "ফেব"), _MN(3, "মার্চ"), _MN(4, "এপ্রিল"), _MN(5, "মে"), _MN(6, "জুন"),
+        _MN(7, "জুল"), _MN(8, "আগস্ট"), _MN(9, "সেপ্টে"), _MN(10, "অক্টো"), _MN(11, "নভে"),
+        _MN(12, "ডিসে"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
-    comptime month_names_long: List[Tuple[Int, String]] = [
-        (1, "জানুয়ারি"), (2, "ফেব্রুয়ারি"), (3, "মার্চ"), (4, "এপ্রিল"), (5, "মে"),
-        (6, "জুন"), (7, "জুলাই"), (8, "আগস্ট"), (9, "সেপ্টেম্বর"), (10, "অক্টোবর"),
-        (11, "নভেম্বর"), (12, "ডিসেম্বর"),
+    comptime month_names_long: List[Tuple[Int, StaticString]] = [
+        _MN(1, "জানুয়ারি"), _MN(2, "ফেব্রুয়ারি"), _MN(3, "মার্চ"), _MN(4, "এপ্রিল"), _MN(5, "মে"),
+        _MN(6, "জুন"), _MN(7, "জুলাই"), _MN(8, "আগস্ট"), _MN(9, "সেপ্টেম্বর"), _MN(10, "অক্টোবর"),
+        _MN(11, "নভেম্বর"), _MN(12, "ডিসেম্বর"),
     ]
     """Names for the months of the year. Alternative names are allowed for
     parsing, but writing prioritizes the first instance of that month number."""
     # fmt: on
-    comptime AM: String = "পূর্বাহ্ণ"
+    comptime AM: StaticString = "পূর্বাহ্ণ"
     """String for AM."""
-    comptime PM: String = "অপরাহ্ণ"
+    comptime PM: StaticString = "অপরাহ্ণ"
     """String for PM."""
 
 
@@ -1563,7 +1577,7 @@ def _write_to[
         elif c == FormatCode.`%`.value[0]:
             writer.write("%")
         else:
-            var fmt_str: String
+            var fmt_str: ImmSlice
             if c == FormatCode.a.value[0]:
                 fmt_str = locale.day_of_week_short(dt)
             elif c == FormatCode.A.value[0]:
@@ -1663,7 +1677,7 @@ def _write_to[
         elif c == FormatCode.`%`.value[0]:
             writer.write("%")
         else:
-            var fmt_str: String
+            var fmt_str: ImmSlice
             comptime if c == FormatCode.a.value[0]:
                 fmt_str = loc.day_of_week_short(dt)
             elif c == FormatCode.A.value[0]:
@@ -1711,7 +1725,7 @@ def _parse[
     zone_info_dict: Dict[String, zone_info_t],
     locale_t: DTLocale = GenericEnglishDTLocale,
 ](
-    spec: String,
+    spec: ImmSlice,
     var read_from: StringSlice[mut=False, _],
     mut dt: _TzNaiveDateTime,
     locale: locale_t,
@@ -1879,7 +1893,7 @@ def _parse[
             )
             read_from = read_from[byte = Int(bytes_read) :]
         else:
-            var fmt_str: String
+            var fmt_str: ImmSlice
             if c == FormatCode.c.value[0]:
                 fmt_str = locale.datetime_fmt[calendar]()
             elif c == FormatCode.x.value[0]:
@@ -2080,7 +2094,7 @@ def _parse[
             )
             read_from = read_from[byte = Int(bytes_read) :]
         else:
-            var fmt_str: String
+            var fmt_str: ImmSlice
             comptime if c == FormatCode.c.value[0]:
                 fmt_str = loc.datetime_fmt[calendar]()
             elif c == FormatCode.x.value[0]:
