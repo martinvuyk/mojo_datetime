@@ -375,6 +375,45 @@ def test_utcfast_calendar() raises:
     assert_equal(1 * day_to_sec * sec_to_nano, d2 - d1)
 
 
+def test_naive_datetime_lt_lexicographic() raises:
+    # A bigger field value at a more significant position must outweigh smaller
+    # values at less significant positions. This is the standard lexicographic
+    # ordering of dates and times, and it is what callers (e.g. ZoneInfo DST
+    # comparisons) depend on.
+
+    # Year boundary: 2024-12-31 23:59:59 must come before 2025-01-01 00:00:00,
+    # even though month/day/hour/minute/second/sub-seconds of the LHS are all
+    # greater than the RHS.
+    var end_of_2024 = _NaiveDateTime(2024, 12, 31, 23, 59, 59, 999, 999, 999)
+    var start_of_2025 = _NaiveDateTime(2025, 1, 1, 0, 0, 0, 0, 0, 0)
+    assert_true(end_of_2024 < start_of_2025)
+    assert_false(start_of_2025 < end_of_2024)
+
+    # Month boundary within the same year.
+    var end_of_jan = _NaiveDateTime(2024, 1, 31, 23, 59, 59)
+    var start_of_feb = _NaiveDateTime(2024, 2, 1, 0, 0, 0)
+    assert_true(end_of_jan < start_of_feb)
+    assert_false(start_of_feb < end_of_jan)
+
+    # Day boundary within the same month.
+    var end_of_day = _NaiveDateTime(2024, 6, 15, 23, 59, 59)
+    var start_of_next_day = _NaiveDateTime(2024, 6, 16, 0, 0, 0)
+    assert_true(end_of_day < start_of_next_day)
+    assert_false(start_of_next_day < end_of_day)
+
+    # Sub-second precision: equal down to microseconds, only nanoseconds differ.
+    var earlier_ns = _NaiveDateTime(2024, 6, 15, 12, 0, 0, 500, 500, 100)
+    var later_ns = _NaiveDateTime(2024, 6, 15, 12, 0, 0, 500, 500, 200)
+    assert_true(earlier_ns < later_ns)
+    assert_false(later_ns < earlier_ns)
+
+    # Equal datetimes: neither is less than the other.
+    var dt = _NaiveDateTime(2024, 6, 15, 12, 30, 45, 100, 200, 300)
+    var dt_copy = _NaiveDateTime(2024, 6, 15, 12, 30, 45, 100, 200, 300)
+    assert_false(dt < dt_copy)
+    assert_false(dt_copy < dt)
+
+
 def test_iso_calendar() raises:
     comptime iso = ISOCalendar[]
 
