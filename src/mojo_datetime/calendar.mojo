@@ -67,6 +67,8 @@ struct SITimeUnit(Comparable, TrivialRegisterPassable):
 
 
 struct _NaiveDateTime(Comparable, ImplicitlyCopyable, Writable):
+    comptime _cal_h = CalendarHashes.UINT64
+
     var year: UInt16
     var month: UInt8
     var day: UInt8
@@ -77,6 +79,7 @@ struct _NaiveDateTime(Comparable, ImplicitlyCopyable, Writable):
     var u_second: UInt16
     var n_second: UInt16
 
+    @always_inline
     def __init__(
         out self,
         year: UInt16 = 0,
@@ -100,32 +103,49 @@ struct _NaiveDateTime(Comparable, ImplicitlyCopyable, Writable):
         self.n_second = n_second
 
     @always_inline
+    @staticmethod
+    def from_hash(value: UInt32) -> Self:
+        var result = Self()
+        result.year = {
+            UInt64(value >> Self._cal_h.shift_64_y) & Self._cal_h.mask_64_y
+        }
+        result.month = {
+            UInt64(value >> Self._cal_h.shift_64_mon) & Self._cal_h.mask_64_mon
+        }
+        result.day = {
+            UInt64(value >> Self._cal_h.shift_64_d) & Self._cal_h.mask_64_d
+        }
+        result.hour = {
+            UInt64(value >> Self._cal_h.shift_64_h) & Self._cal_h.mask_64_h
+        }
+        result.minute = {
+            UInt64(value >> Self._cal_h.shift_64_m) & Self._cal_h.mask_64_m
+        }
+        result.second = {
+            UInt64(value >> Self._cal_h.shift_64_s) & Self._cal_h.mask_64_s
+        }
+        result.m_second = {
+            UInt64(value >> Self._cal_h.shift_64_ms) & Self._cal_h.mask_64_ms
+        }
+        result.u_second = {UInt64(value) & Self._cal_h.mask_64_us}
+        return result
+
+    @always_inline
+    def hash(self) -> UInt64:
+        return (
+            (UInt64(self.year) << Self._cal_h.shift_64_y)
+            | (UInt64(self.month) << Self._cal_h.shift_64_mon)
+            | (UInt64(self.day) << Self._cal_h.shift_64_d)
+            | (UInt64(self.hour) << Self._cal_h.shift_64_h)
+            | (UInt64(self.minute) << Self._cal_h.shift_64_m)
+            | (UInt64(self.second) << Self._cal_h.shift_64_s)
+            | (UInt64(self.m_second) << Self._cal_h.shift_64_ms)
+            | UInt64(self.u_second)
+        )
+
+    @always_inline
     def __lt__(self, other: Self) -> Bool:
-        """Lt.
-
-        Args:
-            other: Other.
-
-        Returns:
-            Bool.
-        """
-        if self.year != other.year:
-            return self.year < other.year
-        if self.month != other.month:
-            return self.month < other.month
-        if self.day != other.day:
-            return self.day < other.day
-        if self.hour != other.hour:
-            return self.hour < other.hour
-        if self.minute != other.minute:
-            return self.minute < other.minute
-        if self.second != other.second:
-            return self.second < other.second
-        if self.m_second != other.m_second:
-            return self.m_second < other.m_second
-        if self.u_second != other.u_second:
-            return self.u_second < other.u_second
-        return self.n_second < other.n_second
+        return (self.hash(), self.n_second) < (other.hash(), other.n_second)
 
 
 # ===----------------------------------------------------------------------=== #
