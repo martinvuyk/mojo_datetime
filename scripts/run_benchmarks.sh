@@ -28,9 +28,9 @@ if [[ $# -gt 0 ]]; then
 fi
 BENCH_PATH=$( realpath ${BENCH_PATH} )
 
-# Pin to a single core if `taskset` is available — cuts inter-rep variance
-# from scheduler migration. Override the core with BENCH_CORE=N. Skip with
-# BENCH_NO_PIN=1 for environments where pinning is not desired.
+# Pin to a single core if taskset is available, to cut inter-rep variance
+# from scheduler migration. Override with BENCH_CORE=N, skip with
+# BENCH_NO_PIN=1.
 BENCH_CORE="${BENCH_CORE:-2}"
 PIN=""
 if [[ -z "${BENCH_NO_PIN:-}" ]] && command -v taskset > /dev/null; then
@@ -38,8 +38,26 @@ if [[ -z "${BENCH_NO_PIN:-}" ]] && command -v taskset > /dev/null; then
   echo "Pinning to CPU ${BENCH_CORE} via taskset (set BENCH_NO_PIN=1 to skip)"
 fi
 
-echo "Running the benchmarks"
+# Warn (don't enforce) if the host is in a state likely to skew numbers.
+GOV_FILE="/sys/devices/system/cpu/cpu${BENCH_CORE}/cpufreq/scaling_governor"
+if [[ -r "${GOV_FILE}" ]]; then
+  GOV=$(cat "${GOV_FILE}")
+  if [[ "${GOV}" != "performance" ]]; then
+    echo "WARN: cpu${BENCH_CORE} governor is '${GOV}', not 'performance'."
+  fi
+fi
+TURBO_FILE="/sys/devices/system/cpu/intel_pstate/no_turbo"
+if [[ -r "${TURBO_FILE}" ]] && [[ "$(cat ${TURBO_FILE})" == "0" ]]; then
+  echo "WARN: turbo is enabled; frequency drift may inflate variance."
+fi
+
+BIN_DIR=$(mktemp -d)
+trap 'rm -rf "${BIN_DIR}"' EXIT
+
+echo "Building and running the benchmarks"
 for f in $( find $BENCH_PATH -name 'bench_*.mojo' ); do
   echo "==> $f"
-  ${PIN} mojo run -O3 $f
+  bin="${BIN_DIR}/$(basename ${f%.mojo})"
+  mojo build -O3 -o "${bin}" "$f"
+  ${PIN} "${bin}"
 done
