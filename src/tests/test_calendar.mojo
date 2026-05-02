@@ -376,10 +376,6 @@ def test_utcfast_calendar() raises:
 
 
 def test_naive_datetime_lt_lexicographic() raises:
-    # A bigger field value at a more significant position must outweigh smaller
-    # values at less significant positions. ZoneInfo DST decisions in
-    # `offset_at_utc_time` rely on this ordering across year/month boundaries.
-
     var end_of_2024 = _NaiveDateTime(2024, 12, 31, 23, 59, 59, 999, 999, 999)
     var start_of_2025 = _NaiveDateTime(2025, 1, 1, 0, 0, 0, 0, 0, 0)
     assert_true(end_of_2024 < start_of_2025)
