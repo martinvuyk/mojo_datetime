@@ -19,7 +19,7 @@ lint_docs = { cmd = "mojo doc --Werror --diagnose-missing-doc-strings -o /dev/nu
 upgrade = { cmd = "pixi update && pixi upgrade && pixi install"}
 
 [dependencies]
-mojo = ">=1.0.0b1.dev2026050100,<2"
+mojo = ">=1.0.0b2.dev2026050106,<2"
 
 [package]
 name = "mojo_datetime"
