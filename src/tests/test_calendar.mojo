@@ -375,6 +375,33 @@ def test_utcfast_calendar() raises:
     assert_equal(1 * day_to_sec * sec_to_nano, d2 - d1)
 
 
+def test_naive_datetime_lt_lexicographic() raises:
+    var end_of_2024 = _NaiveDateTime(2024, 12, 31, 23, 59, 59, 999, 999, 999)
+    var start_of_2025 = _NaiveDateTime(2025, 1, 1, 0, 0, 0, 0, 0, 0)
+    assert_true(end_of_2024 < start_of_2025)
+    assert_false(start_of_2025 < end_of_2024)
+
+    var end_of_jan = _NaiveDateTime(2024, 1, 31, 23, 59, 59)
+    var start_of_feb = _NaiveDateTime(2024, 2, 1, 0, 0, 0)
+    assert_true(end_of_jan < start_of_feb)
+    assert_false(start_of_feb < end_of_jan)
+
+    var end_of_day = _NaiveDateTime(2024, 6, 15, 23, 59, 59)
+    var start_of_next_day = _NaiveDateTime(2024, 6, 16, 0, 0, 0)
+    assert_true(end_of_day < start_of_next_day)
+    assert_false(start_of_next_day < end_of_day)
+
+    var earlier_ns = _NaiveDateTime(2024, 6, 15, 12, 0, 0, 500, 500, 100)
+    var later_ns = _NaiveDateTime(2024, 6, 15, 12, 0, 0, 500, 500, 200)
+    assert_true(earlier_ns < later_ns)
+    assert_false(later_ns < earlier_ns)
+
+    var dt = _NaiveDateTime(2024, 6, 15, 12, 30, 45, 100, 200, 300)
+    var dt_copy = _NaiveDateTime(2024, 6, 15, 12, 30, 45, 100, 200, 300)
+    assert_false(dt < dt_copy)
+    assert_false(dt_copy < dt)
+
+
 def test_iso_calendar() raises:
     comptime iso = ISOCalendar[]
 
