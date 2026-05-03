@@ -16,9 +16,10 @@ from .calendar import Calendar, PythonCalendar, SITimeUnit
 comptime _default_dtype = DType.uint64
 
 
+# FIXME(https://github.com/modular/modular/issues/6485): make this TrivialRegisterPassable
 struct TimeDelta[
     unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = _default_dtype
-](Comparable, TrivialRegisterPassable):
+](Comparable, ImplicitlyCopyable):
     """A struct representing a positive (incl. 0) time delta.
 
     Parameters:

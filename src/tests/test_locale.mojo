@@ -39,6 +39,10 @@ from mojo_datetime.locale import (
     HindiDTLocale,
     ArabicDTLocale,
     BengaliDTLocale,
+    GermanDTLocale,
+    KoreanDTLocale,
+    IndonesianDTLocale,
+    ItalianDTLocale,
 )
 from mojo_datetime.timezone import TZ_UTC
 from mojo_datetime.zoneinfo import gregorian_zoneinfo
@@ -358,7 +362,6 @@ def test_parse_write_to_am_pm() raises:
                 )
                 assert_equal(should_be, res)
                 assert_equal(ref1, parse[fmt1](res))
-                assert_equal(res, should_be)
 
 
 def test_native_locales() raises:
@@ -405,11 +408,16 @@ def test_native_locales() raises:
     comptime B = BengaliDTLocale
     _test_n[B, fmt_short](dt, "মঙ্গল 28 এপ্রিল 2026 15:30:00")
     _test_n[B, fmt_long](dt, "মঙ্গলবার 28 এপ্রিল 2026 03:30:00 অপরাহ্ণ")
-    # TODO: test these
-    # - `GermanDTLocale`
-    # - `KoreanDTLocale`
-    # - `IndonesianDTLocale`
-    # - `ItalianDTLocale`
+    comptime Ge = GermanDTLocale
+    _test_n[Ge, fmt_short](dt, "Di 28 Apr 2026 15:30:00")
+    _test_n[Ge, fmt_long](dt, "Dienstag 28 April 2026 03:30:00 nachm.")
+    _test_n[KoreanDTLocale, fmt_short](dt, "화 28 4월 2026 15:30:00")
+    _test_n[KoreanDTLocale, fmt_long](dt, "화요일 28 4월 2026 03:30:00 오후")
+    comptime I = IndonesianDTLocale
+    _test_n[I, fmt_short](dt, "Sel 28 Apr 2026 15:30:00")
+    _test_n[I, fmt_long](dt, "Selasa 28 April 2026 03:30:00 PM")
+    _test_n[ItalianDTLocale, fmt_short](dt, "Mar 28 Apr 2026 15:30:00")
+    _test_n[ItalianDTLocale, fmt_long](dt, "Martedì 28 Aprile 2026 03:30:00 PM")
 
 
 def test_libc_c_locale() raises:

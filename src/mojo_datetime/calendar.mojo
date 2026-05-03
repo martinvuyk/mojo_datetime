@@ -66,6 +66,7 @@ struct SITimeUnit(Comparable, TrivialRegisterPassable):
         return self._value < rhs._value
 
 
+# FIXME(https://github.com/modular/modular/issues/6460): make this TrivialRegisterPassable
 struct _NaiveDateTime(Comparable, ImplicitlyCopyable, Writable):
     comptime _cal_h = CalendarHashes.UINT64
 
@@ -154,7 +155,7 @@ struct _NaiveDateTime(Comparable, ImplicitlyCopyable, Writable):
 
 
 @fieldwise_init
-struct CalendarHashes[dtype: DType]:
+struct CalendarHashes[dtype: DType](TrivialRegisterPassable):
     """Hashing definitions. Up to microsecond resolution for
     the 64bit hash. Each calendar implementation can still
     override with its own definitions.
@@ -367,7 +368,7 @@ the International Time Bureau.
 comptime _m = UInt16.MAX
 
 
-trait Calendar(Defaultable, ImplicitlyCopyable, Movable):
+trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
     """A calendar implementation.
 
     This trait is intended to be used for custom calendar implementations. It
@@ -973,7 +974,7 @@ struct Gregorian[
     hashed_leapsec_array_: InlineArray[
         UInt32, leapsec_size_
     ] = gregorian_leapsecs,
-](Calendar):
+](Calendar, TrivialRegisterPassable):
     """`Gregorian` Calendar.
 
     Parameters:
@@ -1010,7 +1011,7 @@ struct ISOCalendar[
     hashed_leapsec_array_: InlineArray[
         UInt32, leapsec_size_
     ] = gregorian_leapsecs,
-](Calendar):
+](Calendar, TrivialRegisterPassable):
     """An ISO-8601 Calendar.
 
     Parameters:

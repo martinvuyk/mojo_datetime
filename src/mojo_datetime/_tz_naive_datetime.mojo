@@ -14,12 +14,14 @@
 from .calendar import Calendar, _NaiveDateTime
 
 
+# FIXME(https://github.com/modular/modular/issues/6460): make this TrivialRegisterPassable
 @fieldwise_init
 struct _TzNaiveDateTime[calendar: Calendar](
     Comparable, Defaultable, ImplicitlyCopyable, Writable
 ):
     var dt: _NaiveDateTime
 
+    @always_inline
     def __init__(out self):
         self = {
             {
@@ -37,14 +39,6 @@ struct _TzNaiveDateTime[calendar: Calendar](
 
     @always_inline
     def __lt__(self, other: Self) -> Bool:
-        """Lt.
-
-        Args:
-            other: Other.
-
-        Returns:
-            Bool.
-        """
         return self.dt < other.dt
 
     def add(
@@ -284,3 +278,12 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 u_seconds=u_seconds,
                 n_seconds=n_seconds,
             )
+
+    @always_inline
+    def subtract[
+        unit: SITimeUnit = SITimeUnit.SECONDS,
+        dtype: DType where dtype.is_unsigned() = DType.uint64,
+    ](var self, other: Self) -> TimeDelta[unit, dtype]:
+        var s = self.calendar.to_delta_since_epoch[unit, dtype](self.dt)
+        var o = other.calendar.to_delta_since_epoch[unit, dtype](other.dt)
+        return {(s - o) if self >= other else (o - s)}

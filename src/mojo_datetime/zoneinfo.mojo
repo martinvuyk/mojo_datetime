@@ -21,13 +21,14 @@ from .calendar import _NaiveDateTime
 # ===----------------------------------------------------------------------=== #
 
 
-struct Offset(Defaultable, Equatable, TrivialRegisterPassable, Writable):
+# FIXME(https://github.com/modular/modular/issues/6485): make this TrivialRegisterPassable
+struct Offset(Defaultable, Equatable, ImplicitlyCopyable, Writable):
     """An offset from UTC."""
 
     var hours: UInt8
     """Hours: [0, 15]."""
     var minutes: UInt8
-    """Minutes: {0, 30, 45}."""
+    """Minutes: {0, 15, 30, 45}."""
     var is_east_utc: Bool
     """Whether the offset is east of UTC."""
 
@@ -46,10 +47,12 @@ struct Offset(Defaultable, Equatable, TrivialRegisterPassable, Writable):
             from_hash: The hash.
         """
 
-        self.is_east_utc = Bool(from_hash >> 6)
-        self.hours = (from_hash >> 2) & 0b1111
+        self.is_east_utc = Bool(from_hash >> 7)
+        self.hours = (from_hash >> 2) & 0b11111
         m = from_hash & 0b11
-        self.minutes = UInt8(0) if m == 0 else (UInt8(30) if m == 1 else 45)
+        self.minutes = UInt8(0) if m == 0 else (
+            UInt8(30) if m == 1 else (UInt8(45) if m == 2 else 15)
+        )
 
     @always_inline
     def __init__(out self, hour: UInt8, minute: UInt8, is_east_utc: Bool):
@@ -61,9 +64,12 @@ struct Offset(Defaultable, Equatable, TrivialRegisterPassable, Writable):
             is_east_utc: Whether the sign of the offset is east of UTC.
         """
 
-        assert UInt8(0) <= hour < UInt8(24) and UInt8(0) <= minute < UInt8(
-            60
-        ), ("utc offset hours be in: [0, 24) and minutes in: [0, 60)",)
+        assert UInt8(0) <= hour < UInt8(24), String(
+            t"utc offset hours should be in: [0, 24). Given: {hour}"
+        )
+        assert UInt8(0) <= minute < UInt8(60), String(
+            t"utc offset minutes should be in: [0, 60). Given: {minute}"
+        )
 
         self.hours = hour
         self.minutes = minute
@@ -111,15 +117,23 @@ struct Offset(Defaultable, Equatable, TrivialRegisterPassable, Writable):
 
     @always_inline
     def hash(self) -> UInt8:
-        """Create a hash for the `Offset` (7 bits total).
+        """Create a hash for the `Offset` (8 bits total).
 
         Returns:
             The hash for the `Offset`.
         """
-        var m = UInt8(1) if self.minutes == 30 else (
-            UInt8(2) if self.minutes == 45 else 0
+        assert self.minutes in [
+            UInt8(0),
+            15,
+            30,
+            45,
+        ], "hashing requires minutes to be in `{0, 15, 30, 45}`"
+        var m = UInt8(1) if (self.minutes == 30) else (
+            UInt8(2) if (self.minutes == 45) else (
+                UInt8(3) if (self.minutes == 15) else 0
+            )
         )
-        return (UInt8(self.is_east_utc) << 6) | (self.hours << 2) | m
+        return (UInt8(self.is_east_utc) << 7) | (self.hours << 2) | m
 
     def write_to(self, mut writer: Some[Writer]):
         """Write the UTCOffset's [ISO 8601](
@@ -153,6 +167,11 @@ struct Offset(Defaultable, Equatable, TrivialRegisterPassable, Writable):
         return self.hash() == other.hash()
 
     @always_inline
+    def _total_minutes(self) -> Int16:
+        var total = Int16(self.hours) * 60 + Int16(self.minutes)
+        return total if self.is_east_utc else -total
+
+    @always_inline
     def __lt__(self, other: Self) -> Bool:
         """Whether self is less than other.
 
@@ -162,11 +181,7 @@ struct Offset(Defaultable, Equatable, TrivialRegisterPassable, Writable):
         Returns:
             The result.
         """
-        return (self.is_east_utc, self.hours, self.minutes) < (
-            other.is_east_utc,
-            other.hours,
-            other.minutes,
-        )
+        return self._total_minutes() < other._total_minutes()
 
     @always_inline
     def local_to_utc(self, dt: _TzNaiveDateTime) -> type_of(dt):
@@ -219,24 +234,10 @@ struct Offset(Defaultable, Equatable, TrivialRegisterPassable, Writable):
         Returns:
             The result.
         """
-        if self.is_east_utc == other.is_east_utc:
-            return {
-                self.hours + other.hours,
-                self.minutes + other.minutes,
-                self.is_east_utc,
-            }
-        elif self < other:
-            return {
-                other.hours - self.hours,
-                other.minutes - self.minutes,
-                other.is_east_utc,
-            }
-        else:
-            return {
-                self.hours - other.hours,
-                self.minutes - other.minutes,
-                self.is_east_utc,
-            }
+        var total_mins = self._total_minutes() + other._total_minutes()
+        var is_east = total_mins >= 0
+        var abs_mins = abs(total_mins)
+        return {UInt8(abs_mins // 60), UInt8(abs_mins % 60), is_east}
 
     @always_inline
     def __iadd__(mut self, other: Self):
@@ -253,8 +254,9 @@ struct Offset(Defaultable, Equatable, TrivialRegisterPassable, Writable):
 # ===----------------------------------------------------------------------=== #
 
 
+# FIXME(https://github.com/modular/modular/issues/6485): make this TrivialRegisterPassable
 @fieldwise_init
-struct TRef(Equatable, TrivialRegisterPassable, Writable):
+struct TRef(Equatable, ImplicitlyCopyable, Writable):
     """The time reference type."""
 
     comptime UTC = Self(0)
@@ -265,9 +267,24 @@ struct TRef(Equatable, TrivialRegisterPassable, Writable):
     """Daylight savings time (local time)."""
     var _value: UInt8
 
+    def write_to(self, mut writer: Some[Writer]):
+        """Write selt into a writer.
 
+        Args:
+            writer: The writer to write to.
+        """
+        writer.write("TRef.")
+        if self._value == Self.UTC._value:
+            writer.write("UTC")
+        elif self._value == Self.STD._value:
+            writer.write("STD")
+        elif self._value == Self.DST._value:
+            writer.write("DST")
+
+
+# FIXME(https://github.com/modular/modular/issues/6485): make this TrivialRegisterPassable
 @fieldwise_init
-struct TzDT(Equatable, TrivialRegisterPassable, Writable):
+struct TzDT(Equatable, ImplicitlyCopyable, Writable):
     """UTC time zone daylight savings time rule stores the rule for DST
     start/end. The rules are expected to be expressed in terms of UTC."""
 
@@ -337,7 +354,7 @@ struct TzDT(Equatable, TrivialRegisterPassable, Writable):
 # ===----------------------------------------------------------------------=== #
 
 
-trait UTCZoneInfo(Defaultable, Equatable, TrivialRegisterPassable):
+trait UTCZoneInfo(Defaultable, Equatable, ImplicitlyCopyable):
     """A trait that defines what a struct containing zone info should look
     like."""
 
@@ -345,10 +362,10 @@ trait UTCZoneInfo(Defaultable, Equatable, TrivialRegisterPassable):
         """Return the UTC offset for the `TimeZone` at the given date.
 
         Args:
-            dt: The naive datetime.
+            dt: The local datetime.
 
         Returns:
-            The offset.
+            The UTC offset for the `TimeZone` at the given date.
         """
         ...
 
@@ -356,14 +373,15 @@ trait UTCZoneInfo(Defaultable, Equatable, TrivialRegisterPassable):
         """Return the UTC offset for the `TimeZone` at the given date.
 
         Args:
-            dt: The naive datetime.
+            dt: The UTC datetime.
 
         Returns:
-            The offset.
+            The UTC offset for the `TimeZone` at the given date.
         """
         ...
 
 
+# FIXME(https://github.com/modular/modular/issues/6485): make this TrivialRegisterPassable
 struct ZoneInfo(UTCZoneInfo):
     """`ZoneInfo` stores both start and end dates of DST (in case there
     is one), and the offset for standard time and dailight savings time for the
@@ -402,9 +420,11 @@ struct ZoneInfo(UTCZoneInfo):
             dst_offset: The daylight savings time Offset, defaults to std + an
                 hour (agnostic of east or west of UTC).
         """
-        var dst = dst_offset.or_else(std_offset)
-        if not dst_offset:
-            dst.hours += 1
+        var dst: Offset
+        if dst_offset:
+            dst = dst_offset.unsafe_value()
+        else:
+            dst = std_offset + Offset(1, 0, True)
         self._hash = (
             (UInt64(dst_start.hash()) << (32 + 16))
             | (UInt64(dst_end.hash()) << 32)
@@ -440,60 +460,57 @@ struct ZoneInfo(UTCZoneInfo):
         )
 
     @staticmethod
-    def get_datetime_for_relative_rule(
-        reference_dt: _TzNaiveDateTime, rule: TzDT, std: Offset, dst: Offset
-    ) -> type_of(reference_dt):
-        """Return the datetime for the relative rule at the given reference
-        UTC datetime.
+    def _get_datetimes_for_relative_rules(
+        reference_dt: _TzNaiveDateTime,
+        start_rule: TzDT,
+        end_rule: TzDT,
+        std: Offset,
+        dst: Offset,
+    ) -> Tuple[type_of(reference_dt), type_of(reference_dt)]:
+        comptime DT = type_of(reference_dt)
 
-        Args:
-            reference_dt: The reference naive datetime.
-            rule: The DST/STD transition rule.
-            std: The std offset.
-            dst: The dst offset.
+        def _datetime_for_rule(var dt: DT, rule: TzDT) {read} -> DT:
+            var maxdays = dt.calendar.max_days_in_month(dt.dt)
+            var iterable = range(0, Int(maxdays), step=1)
+            if rule.from_end_of_month:
+                iterable = range(Int(maxdays - 1), -1, step=-1)
 
-        Returns:
-            The UTC datetime the relative transition rule falls in for the given
-            reference datetime.
-        """
-        var is_end_mon = rule.from_end_of_month
-        var dt = type_of(reference_dt)(
-            {reference_dt.dt.year, rule.month, 1, rule.hour}
-        )
+            var is_first_week = True
+            for i in iterable:
+                dt.dt.day = UInt8(i + 1)
+                if dt.calendar.day_of_week(dt.dt) == rule.day_of_week:
+                    if is_first_week == rule.first_week:
+                        break  # we found it
+                    is_first_week = False
 
-        var maxdays = dt.calendar.max_days_in_month(dt.dt)
-        var iterable = range(0, Int(maxdays), step=1)
-        if is_end_mon:
-            iterable = range(Int(maxdays - 1), -1, step=-1)
+            if rule.t_ref == TRef.UTC:
+                return dt
 
-        var is_first_week = True
-        for i in iterable:
-            dt.dt.day = UInt8(i + 1)
-            if dt.calendar.day_of_week(dt.dt) == rule.day_of_week:
-                if is_first_week == rule.first_week:
-                    break  # we found it
-                is_first_week = False
+            return (std if rule.t_ref == TRef.STD else dst).local_to_utc(dt)
 
-        if rule.t_ref == TRef.UTC:
-            return dt
-
-        return (std if rule.t_ref == TRef.STD else dst).local_to_utc(dt)
+        var y = reference_dt.dt.year
+        var d = reference_dt.calendar.min_day
+        var s_dt_base = DT({y, start_rule.month, d, start_rule.hour})
+        var s_dt_curr = _datetime_for_rule(s_dt_base, start_rule)
+        var e_dt_base = DT({y, end_rule.month, d, end_rule.hour})
+        var e_dt_curr = _datetime_for_rule(e_dt_base, end_rule)
+        return s_dt_curr, e_dt_curr
 
     def offset_at_local_time(self, dt: _TzNaiveDateTime) -> Offset:
         """Return the UTC offset for the `TimeZone` at the given date.
 
         Args:
-            dt: The naive datetime.
+            dt: The local datetime.
 
         Returns:
-            The offset.
+            The UTC offset for the `TimeZone` at the given date.
 
         Notes:
             During the overlap time (usually an hour) between the transition
             from daylight savings time to standard time, the earlier offset
             is returned (daylight savings time).
         """
-        ref _, _, std, dst = self.parse()
+        var _, _, std, dst = self.parse()
 
         var offset_1 = self.offset_at_utc_time(std.local_to_utc(dt))
         var offset_2 = self.offset_at_utc_time(dst.local_to_utc(dt))
@@ -509,26 +526,43 @@ struct ZoneInfo(UTCZoneInfo):
         """Return the UTC offset for the `TimeZone` at the given date.
 
         Args:
-            dt: The datetime.
+            dt: The UTC datetime.
 
         Returns:
-            The offset.
+            The UTC offset for the `TimeZone` at the given date.
         """
-        ref dst_start, dst_end, std, dst = self.parse()
+        var dst_start, dst_end, std, dst = self.parse()
         if dst_start == dst_end:
             return std
 
-        var dst_start_dt = Self.get_datetime_for_relative_rule(
-            dt, dst_start, std, dst
+        var s_dt_curr, e_dt_curr = Self._get_datetimes_for_relative_rules(
+            dt, dst_start, dst_end, std, dst
         )
-        var dst_end_dt = Self.get_datetime_for_relative_rule(
-            dt, dst_end, std, dst
+        var s_dt_prev, e_dt_prev = Self._get_datetimes_for_relative_rules(
+            dt.subtract(years=1), dst_start, dst_end, std, dst
+        )
+        var s_dt_next, e_dt_next = Self._get_datetimes_for_relative_rules(
+            dt.add(years=1), dst_start, dst_end, std, dst
         )
 
-        if dst_start_dt < dst_end_dt:  # Northern
-            return dst if dst_start_dt < dt <= dst_end_dt else std
-        else:  # Southern
-            return dst if dt > dst_start_dt or dt <= dst_end_dt else std
+        if s_dt_next < e_dt_next:
+            if s_dt_next < dt <= e_dt_next:
+                return dst
+            elif s_dt_curr < dt <= e_dt_curr:
+                return dst
+            elif s_dt_prev < dt <= e_dt_prev:
+                return dst
+            else:
+                return std
+        else:
+            if s_dt_curr < dt <= e_dt_next:
+                return dst
+            elif s_dt_prev < dt <= e_dt_curr:
+                return dst
+            elif s_dt_next < dt:
+                return dst
+            else:
+                return std
 
 
 # ===----------------------------------------------------------------------=== #
