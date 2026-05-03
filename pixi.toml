@@ -15,6 +15,7 @@ repository = "https://github.com/martinvuyk/mojo_datetime"
 format = { cmd = "mojo format ./src" }
 package = { cmd = "./scripts/package-lib.sh", depends-on = ["format"] }
 tests = { cmd = "./scripts/run_tests.sh", depends-on = ["package"]}
+bench = { cmd = "./scripts/run_benchmarks.sh", depends-on = ["package"]}
 lint_docs = { cmd = "mojo doc --Werror --diagnose-missing-doc-strings -o /dev/null ./src/mojo_datetime" }
 upgrade = { cmd = "pixi update && pixi upgrade && pixi install"}
 
