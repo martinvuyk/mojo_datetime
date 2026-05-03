@@ -1144,7 +1144,7 @@ struct DateTime[
             locale: An optional locale for locale-aware format codes.
 
         Notes:
-            - See [`FormatCodes`](/mojo_datetime/locale/FormatCodes) for all the
+            - See [`FormatCode`](/mojo_datetime/locale/FormatCode) for all the
                 supported format codes.
         """
         var naive_self = self._to_tz_naive_datetime()

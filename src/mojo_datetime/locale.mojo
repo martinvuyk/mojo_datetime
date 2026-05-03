@@ -50,6 +50,8 @@ struct FormatCode(Equatable):
     """The day of the week as a decimal number."""
     comptime d = Self("d")
     """Day of the month as a zero-padded decimal number."""
+    comptime e = Self("e")
+    """Day of the month as a space-padded decimal number."""
     comptime b = Self("b")
     """Month as locale's abbreviated name."""
     comptime B = Self("B")
@@ -1551,11 +1553,12 @@ struct ItalianDTLocale(NativeDTLocale):
 
 
 # fmt: off
-comptime _allowed_specs_start: InlineArray[Byte, 24] = [
+comptime _allowed_specs_start: InlineArray[Byte, 25] = [
     Byte(ord("w")), Byte(ord("d")), Byte(ord("m")), Byte(ord("y")),
     Byte(ord("Y")), Byte(ord("H")), Byte(ord("I")), Byte(ord("M")),
     Byte(ord("S")), Byte(ord("f")), Byte(ord("z")), Byte(ord("Z")),
     Byte(ord("j")), Byte(ord("W")), Byte(ord("%")), Byte(ord(":")),
+    Byte(ord("e")),
     # locale aware
     Byte(ord("a")), Byte(ord("A")), Byte(ord("b")), Byte(ord("B")),
     Byte(ord("p")), Byte(ord("c")), Byte(ord("x")), Byte(ord("X")),
@@ -1620,6 +1623,9 @@ def _write_to[
         elif c == FormatCode.d.value[0]:
             var d = dt.dt.day
             writer.write(_pad(d, 10), d)
+        elif c == FormatCode.e.value[0]:
+            var d = dt.dt.day
+            writer.write(" " if d < 10 else "", d)
         elif c == FormatCode.m.value[0]:
             var m = dt.dt.month
             writer.write(_pad(m, 10), m)
@@ -1719,6 +1725,9 @@ def _write_to[
         elif c == FormatCode.d.value[0]:
             var d = dt.dt.day
             writer.write(_pad(d, 10), d)
+        elif c == FormatCode.e.value[0]:
+            var d = dt.dt.day
+            writer.write(" " if d < 10 else "", d)
         elif c == FormatCode.m.value[0]:
             var m = dt.dt.month
             writer.write(_pad(m, 10), m)
@@ -1885,7 +1894,7 @@ def _parse[
             ](read_from)
             days_to_add += dow
             read_from = sl
-        elif c == FormatCode.d.value[0]:
+        elif c == FormatCode.d.value[0] or c == FormatCode.e.value[0]:
             var day, sl = _parse_num_or_raise[
                 2,
                 dt.calendar.min_day,
@@ -1980,8 +1989,12 @@ def _parse[
         elif c == FormatCode.Z.value[0]:
             var idx = read_from.find(" ")
             var maybe_tz_str = read_from[byte=:idx] if idx != -1 else read_from
-            var maybe_zone_info = global_constant[zone_info_dict]().get(
-                String(maybe_tz_str)  # FIXME: we don't need to allocate here
+            # FIXME: for some reason support for this was blocked
+            # var maybe_zone_info = global_constant[zone_info_dict]().get(
+            #     String(maybe_tz_str)  # FIXME: we don't need to allocate here
+            # )
+            var maybe_zone_info = materialize[zone_info_dict]().get(
+                String(maybe_tz_str)
             )
             if not maybe_zone_info:
                 raise Error(
@@ -2080,7 +2093,7 @@ def _parse[
             ](read_from)
             days_to_add += dow
             read_from = sl
-        elif c == FormatCode.d.value[0]:
+        elif c == FormatCode.d.value[0] or c == FormatCode.e.value[0]:
             var day, sl = _parse_num_or_raise[
                 2,
                 dt.calendar.min_day,
@@ -2174,8 +2187,12 @@ def _parse[
         elif c == FormatCode.Z.value[0]:
             var idx = read_from.find(" ")
             var maybe_tz_str = read_from[byte=:idx] if idx != -1 else read_from
-            var maybe_zone_info = global_constant[zone_info_dict]().get(
-                String(maybe_tz_str)  # FIXME: we don't need to allocate here
+            # FIXME: for some reason support for this was blocked
+            # var maybe_zone_info = global_constant[zone_info_dict]().get(
+            #     String(maybe_tz_str)  # FIXME: we don't need to allocate here
+            # )
+            var maybe_zone_info = materialize[zone_info_dict]().get(
+                String(maybe_tz_str)
             )
             if not maybe_zone_info:
                 raise Error(

@@ -51,13 +51,10 @@ if [[ -r "${TURBO_FILE}" ]] && [[ "$(cat ${TURBO_FILE})" == "0" ]]; then
   echo "WARN: turbo is enabled; frequency drift may inflate variance."
 fi
 
-BIN_DIR=$(mktemp -d)
-trap 'rm -rf "${BIN_DIR}"' EXIT
-
 echo "Building and running the benchmarks"
 for f in $( find $BENCH_PATH -name 'bench_*.mojo' ); do
   echo "==> $f"
-  bin="${BIN_DIR}/$(basename ${f%.mojo})"
+  bin="${BUILD_DIR}/$(basename ${f%.mojo})"
   mojo build -O3 -o "${bin}" "$f"
   ${PIN} "${bin}"
 done

@@ -450,5 +450,30 @@ def test_libc_c_locale() raises:
         res = ""
 
 
+def test_c_code_libc() raises:
+    var loc = LibCLocale()
+    var res = ""
+    var dt = _TzNaiveDateTime[PythonCalendar]({2026, 4, 28, 15, 30, 0})
+    _write_to["%c", "", LibCLocale](res, dt, {}, loc.copy())
+    assert_equal(res, "Tue Apr 28 15:30:00 2026")
+    assert_equal(
+        dt,
+        _parse["%c", PythonCalendar, gregorian_zoneinfo, LibCLocale](res, loc^),
+    )
+
+
+def test_c_code_native() raises:
+    var res = ""
+    var dt = _TzNaiveDateTime[PythonCalendar]({2026, 4, 28, 15, 30, 0})
+    _write_to["%c", "", GenericEnglishDTLocale](res, dt, {})
+    assert_equal(res, "Tue, 28 Apr 2026 15:30:00 +0000")
+    assert_equal(
+        dt,
+        _parse[
+            "%c", PythonCalendar, gregorian_zoneinfo, GenericEnglishDTLocale
+        ](res),
+    )
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()
