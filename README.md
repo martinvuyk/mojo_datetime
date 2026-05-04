@@ -4,23 +4,10 @@ A flexible Mojo datetime implementation.
 
 Fully Mojo native, no external dependencies.
 
-## How to Install
+## Distribution channels
 
-Clone the repo and run the package script
-
-```bash
-pixi run package
-```
-
-The package will be under `./build/mojo_datetime.mojopkg`
-
-## How to run tests
-
-Test an entire directory or subdirectory or specific file
-
-```bash
-pixi run tests
-```
+- Github releases for both 0.26.2 and nightly versions
+- The latest 0.26.2 version should be in the `modular-community` channel
 
 ## About the library
 
@@ -62,7 +49,10 @@ Native Mojo locales are provided for these locales, with a trait
 - `HindiDTLocale`
 - `ArabicDTLocale`
 - `BengaliDTLocale`
-
+- `GermanDTLocale`
+- `KoreanDTLocale`
+- `IndonesianDTLocale`
+- `ItalianDTLocale`
 
 ## Examples:
 

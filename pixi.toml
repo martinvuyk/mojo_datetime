@@ -4,7 +4,7 @@ channels = ["https://conda.modular.com/max", "conda-forge"]
 preview = ["pixi-build"]
 name = "mojo_datetime"
 platforms = ["osx-arm64", "linux-aarch64", "linux-64"]
-version = "0.1.0"
+version = "0.1.1"
 license = "Apache-2.0 WITH LLVM-exception"
 license-file = "LICENSE"
 readme = "README.md"
@@ -23,7 +23,7 @@ mojo = "=0.26.2"
 
 [package]
 name = "mojo_datetime"
-version = "0.1.0"
+version = "0.1.1"
 
 [package.build]
 backend = { name = "pixi-build-mojo", version = "0.1.*" }

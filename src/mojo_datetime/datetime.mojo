@@ -35,6 +35,7 @@ from .zoneinfo import UTCZoneInfo, gregorian_zoneinfo
 from ._tz_naive_datetime import _TzNaiveDateTime
 
 
+# FIXME(https://github.com/modular/modular/issues/6485): make this TrivialRegisterPassable
 @fieldwise_init
 struct DayOfWeek[calendar: Calendar = PythonCalendar](
     Comparable, ImplicitlyCopyable
@@ -250,9 +251,33 @@ struct DayOfWeek[calendar: Calendar = PythonCalendar](
         Returns:
             The result.
         """
-        return self != other.to_calendar[Self.calendar]()
+        return not self == other.to_calendar[Self.calendar]()
+
+    def write_to(self, mut writer: Some[Writer]):
+        """Write the `DayOfWeek` into a writer.
+
+        Args:
+            writer: The writer to write to.
+        """
+        if self.is_monday():
+            writer.write("Monday")
+        elif self.is_tuesday():
+            writer.write("Tuesday")
+        elif self.is_wednesday():
+            writer.write("Wednesday")
+        elif self.is_thursday():
+            writer.write("Thursday")
+        elif self.is_friday():
+            writer.write("Friday")
+        elif self.is_saturday():
+            writer.write("Saturday")
+        elif self.is_sunday():
+            writer.write("Sunday")
+        else:
+            assert False, "Unknown DayOfWeek value"
 
 
+# FIXME(https://github.com/modular/modular/issues/6485): make this TrivialRegisterPassable
 struct DateTime[
     timezone: TimeZone = TZ_UTC, calendar: Calendar = PythonCalendar
 ](Comparable, ImplicitlyCopyable, Writable):
@@ -504,9 +529,8 @@ struct DateTime[
 
     @always_inline
     def to_delta_since_epoch[
-        unit: SITimeUnit = SITimeUnit.SECONDS,
-        dtype: DType where dtype.is_unsigned() = DType.uint64,
-    ](self) -> TimeDelta[unit, dtype]:
+        unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = DType.uint64
+    ](self) -> TimeDelta[unit, dtype] where dtype.is_unsigned():
         """The amount of time since the begining of the calendar's epoch.
 
         Parameters:
@@ -524,9 +548,8 @@ struct DateTime[
 
     @always_inline
     def to_delta_since_unix_epoch[
-        unit: SITimeUnit = SITimeUnit.SECONDS,
-        dtype: DType where dtype.is_unsigned() = DType.uint64,
-    ](self) -> Tuple[Bool, TimeDelta[unit, dtype]]:
+        unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = DType.uint64
+    ](self) -> Tuple[Bool, TimeDelta[unit, dtype]] where dtype.is_unsigned():
         """The amount of time since the begining of the unix epoch (1970-01-01).
 
         Parameters:
@@ -713,10 +736,11 @@ struct DateTime[
 
     @always_inline
     def subtract[
-        unit: SITimeUnit = SITimeUnit.SECONDS,
-        dtype: DType where dtype.is_unsigned() = DType.uint64,
-    ](var self, other: Self) -> TimeDelta[unit, dtype]:
-        """Subtracts another `DateTime`.
+        unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = DType.uint64
+    ](var self, other: Self) -> TimeDelta[
+        unit, dtype
+    ] where dtype.is_unsigned():
+        """Subtracts another `DateTime` and returns the absolute time delta.
 
         Parameters:
             unit: The time unit to calculate the delta in.
@@ -726,13 +750,11 @@ struct DateTime[
             other: Other.
 
         Returns:
-            A `DateTime` with the `TimeZone` and `Calendar` of `self`.
+            The absolute time delta between the two dates.
         """
-        assert self >= other, "self must be >= other"
-        return (
-            self.to_delta_since_epoch[unit, dtype]()
-            - other.to_delta_since_epoch[unit, dtype]()
-        )
+        var s = self.to_delta_since_epoch[unit, dtype]()
+        var o = other.to_delta_since_epoch[unit, dtype]()
+        return (s - o) if self >= other else (o - s)
 
     @always_inline
     def __add__(var self, other: TimeDelta) -> Self:
@@ -1121,7 +1143,7 @@ struct DateTime[
             locale: An optional locale for locale-aware format codes.
 
         Notes:
-            - See [`FormatCodes`](/mojo_datetime/locale/FormatCodes) for all the
+            - See [`FormatCode`](/mojo_datetime/locale/FormatCode) for all the
                 supported format codes.
         """
         var naive_self = self._to_tz_naive_datetime()

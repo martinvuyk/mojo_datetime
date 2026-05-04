@@ -66,7 +66,10 @@ struct SITimeUnit(Comparable, TrivialRegisterPassable):
         return self._value < rhs._value
 
 
+# FIXME(https://github.com/modular/modular/issues/6460): make this TrivialRegisterPassable
 struct _NaiveDateTime(Comparable, ImplicitlyCopyable, Writable):
+    comptime _cal_h = CalendarHashes.UINT64
+
     var year: UInt16
     var month: UInt8
     var day: UInt8
@@ -77,6 +80,7 @@ struct _NaiveDateTime(Comparable, ImplicitlyCopyable, Writable):
     var u_second: UInt16
     var n_second: UInt16
 
+    @always_inline
     def __init__(
         out self,
         year: UInt16 = 0,
@@ -100,26 +104,49 @@ struct _NaiveDateTime(Comparable, ImplicitlyCopyable, Writable):
         self.n_second = n_second
 
     @always_inline
-    def __lt__(self, other: Self) -> Bool:
-        """Lt.
+    @staticmethod
+    def from_hash(value: UInt32) -> Self:
+        var result = Self()
+        result.year = {
+            UInt64(value >> Self._cal_h.shift_64_y) & Self._cal_h.mask_64_y
+        }
+        result.month = {
+            UInt64(value >> Self._cal_h.shift_64_mon) & Self._cal_h.mask_64_mon
+        }
+        result.day = {
+            UInt64(value >> Self._cal_h.shift_64_d) & Self._cal_h.mask_64_d
+        }
+        result.hour = {
+            UInt64(value >> Self._cal_h.shift_64_h) & Self._cal_h.mask_64_h
+        }
+        result.minute = {
+            UInt64(value >> Self._cal_h.shift_64_m) & Self._cal_h.mask_64_m
+        }
+        result.second = {
+            UInt64(value >> Self._cal_h.shift_64_s) & Self._cal_h.mask_64_s
+        }
+        result.m_second = {
+            UInt64(value >> Self._cal_h.shift_64_ms) & Self._cal_h.mask_64_ms
+        }
+        result.u_second = {UInt64(value) & Self._cal_h.mask_64_us}
+        return result
 
-        Args:
-            other: Other.
-
-        Returns:
-            Bool.
-        """
+    @always_inline
+    def hash(self) -> UInt64:
         return (
-            self.year < other.year
-            and self.month < other.month
-            and self.day < other.day
-            and self.hour < other.hour
-            and self.minute < other.minute
-            and self.second < other.second
-            and self.m_second < other.m_second
-            and self.u_second < other.u_second
-            and self.n_second < other.n_second
+            (UInt64(self.year) << Self._cal_h.shift_64_y)
+            | (UInt64(self.month) << Self._cal_h.shift_64_mon)
+            | (UInt64(self.day) << Self._cal_h.shift_64_d)
+            | (UInt64(self.hour) << Self._cal_h.shift_64_h)
+            | (UInt64(self.minute) << Self._cal_h.shift_64_m)
+            | (UInt64(self.second) << Self._cal_h.shift_64_s)
+            | (UInt64(self.m_second) << Self._cal_h.shift_64_ms)
+            | UInt64(self.u_second)
         )
+
+    @always_inline
+    def __lt__(self, other: Self) -> Bool:
+        return (self.hash(), self.n_second) < (other.hash(), other.n_second)
 
 
 # ===----------------------------------------------------------------------=== #
@@ -128,7 +155,7 @@ struct _NaiveDateTime(Comparable, ImplicitlyCopyable, Writable):
 
 
 @fieldwise_init
-struct CalendarHashes[dtype: DType]:
+struct CalendarHashes[dtype: DType](TrivialRegisterPassable):
     """Hashing definitions. Up to microsecond resolution for
     the 64bit hash. Each calendar implementation can still
     override with its own definitions.
@@ -341,7 +368,7 @@ the International Time Bureau.
 comptime _m = UInt16.MAX
 
 
-trait Calendar(Defaultable, ImplicitlyCopyable, Movable):
+trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
     """A calendar implementation.
 
     This trait is intended to be used for custom calendar implementations. It
@@ -947,7 +974,7 @@ struct Gregorian[
     hashed_leapsec_array_: InlineArray[
         UInt32, leapsec_size_
     ] = gregorian_leapsecs,
-](Calendar):
+](Calendar, TrivialRegisterPassable):
     """`Gregorian` Calendar.
 
     Parameters:
@@ -984,7 +1011,7 @@ struct ISOCalendar[
     hashed_leapsec_array_: InlineArray[
         UInt32, leapsec_size_
     ] = gregorian_leapsecs,
-](Calendar):
+](Calendar, TrivialRegisterPassable):
     """An ISO-8601 Calendar.
 
     Parameters:

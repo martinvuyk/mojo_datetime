@@ -1,0 +1,28 @@
+name: Run on a push into a version branch
+
+on:
+  push:
+    branches: [main, 0.26.2]
+    paths:
+      - '**.mojo'
+      - '**pixi.toml'
+      - '**pixi.lock'
+
+permissions:
+  contents: write
+
+concurrency: # Only allow a single run at a time
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    uses: ./.github/workflows/lint.yml
+
+  test:
+    needs: lint
+    uses: ./.github/workflows/test.yml
+
+  release:
+    needs: test
+    uses: ./.github/workflows/release.yml
