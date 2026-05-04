@@ -4,7 +4,7 @@ channels = ["https://conda.modular.com/max-nightly", "conda-forge"]
 preview = ["pixi-build"]
 name = "mojo_datetime"
 platforms = ["osx-arm64", "linux-aarch64", "linux-64"]
-version = "0.1.0"
+version = "0.1.1"
 license = "Apache-2.0 WITH LLVM-exception"
 license-file = "LICENSE"
 readme = "README.md"
@@ -15,15 +15,16 @@ repository = "https://github.com/martinvuyk/mojo_datetime"
 format = { cmd = "mojo format ./src" }
 package = { cmd = "./scripts/package-lib.sh", depends-on = ["format"] }
 tests = { cmd = "./scripts/run_tests.sh", depends-on = ["package"]}
+bench = { cmd = "./scripts/run_benchmarks.sh", depends-on = ["package"]}
 lint_docs = { cmd = "mojo doc --Werror --diagnose-missing-doc-strings -o /dev/null ./src/mojo_datetime" }
 upgrade = { cmd = "pixi update && pixi upgrade && pixi install"}
 
 [dependencies]
-mojo = ">=1.0.0b2.dev2026050306,<2"
+mojo = ">=1.0.0b2.dev2026050406,<2"
 
 [package]
 name = "mojo_datetime"
-version = "0.1.0"
+version = "0.1.1"
 
 [package.build]
 backend = { name = "pixi-build-mojo", version = "0.1.*" }

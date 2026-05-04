@@ -49,7 +49,10 @@ Native Mojo locales are provided for these locales, with a trait
 - `HindiDTLocale`
 - `ArabicDTLocale`
 - `BengaliDTLocale`
-
+- `GermanDTLocale`
+- `KoreanDTLocale`
+- `IndonesianDTLocale`
+- `ItalianDTLocale`
 
 ## Examples:
 
