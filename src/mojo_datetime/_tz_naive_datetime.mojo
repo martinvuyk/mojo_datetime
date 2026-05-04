@@ -281,9 +281,10 @@ struct _TzNaiveDateTime[calendar: Calendar](
 
     @always_inline
     def subtract[
-        unit: SITimeUnit = SITimeUnit.SECONDS,
-        dtype: DType where dtype.is_unsigned() = DType.uint64,
-    ](var self, other: Self) -> TimeDelta[unit, dtype]:
+        unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = DType.uint64
+    ](var self, other: Self) -> TimeDelta[
+        unit, dtype
+    ] where dtype.is_unsigned():
         var s = self.calendar.to_delta_since_epoch[unit, dtype](self.dt)
         var o = other.calendar.to_delta_since_epoch[unit, dtype](other.dt)
         return {(s - o) if self >= other else (o - s)}

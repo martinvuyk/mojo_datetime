@@ -327,46 +327,45 @@ def main() raises:
     var m = Bench(
         BenchConfig(num_repetitions=1, num_warmup_iters=100, max_iters=100)
     )
-    var tput = [ThroughputMeasure(BenchMetric.elements, BATCH)]
 
-    m.bench_function[bench_write_iso](BenchId("write_iso"), tput.copy())
+    m.bench_function[bench_write_iso](BenchId("write_iso"))
     m.bench_function[bench_write_locale_short_native](
-        BenchId("write_locale_short_native"), tput.copy()
+        BenchId("write_locale_short_native")
     )
     m.bench_function[bench_write_locale_long_native](
-        BenchId("write_locale_long_native"), tput.copy()
+        BenchId("write_locale_long_native")
     )
     m.bench_function[bench_write_locale_short_libc](
-        BenchId("write_locale_short_libc"), tput.copy()
+        BenchId("write_locale_short_libc")
     )
     m.bench_function[bench_write_locale_long_libc](
-        BenchId("write_locale_long_libc"), tput.copy()
+        BenchId("write_locale_long_libc")
     )
     m.bench_function[bench_write_locale_c_recursion_native](
-        BenchId("write_locale_c_recursion_native"), tput.copy()
+        BenchId("write_locale_c_recursion_native")
     )
     m.bench_function[bench_write_locale_c_recursion_libc](
-        BenchId("write_locale_c_recursion_libc"), tput.copy()
+        BenchId("write_locale_c_recursion_libc")
     )
 
-    m.bench_function[bench_parse_iso](BenchId("parse_iso"), tput.copy())
+    m.bench_function[bench_parse_iso](BenchId("parse_iso"))
     m.bench_function[bench_parse_locale_short_native](
-        BenchId("parse_locale_short_native"), tput.copy()
+        BenchId("parse_locale_short_native")
     )
     m.bench_function[bench_parse_locale_long_native](
-        BenchId("parse_locale_long_native"), tput.copy()
+        BenchId("parse_locale_long_native")
     )
     m.bench_function[bench_parse_locale_short_libc](
-        BenchId("parse_locale_short_libc"), tput.copy()
+        BenchId("parse_locale_short_libc")
     )
     m.bench_function[bench_parse_locale_long_libc](
-        BenchId("parse_locale_long_libc"), tput.copy()
+        BenchId("parse_locale_long_libc")
     )
     m.bench_function[bench_parse_locale_c_recursion_native](
-        BenchId("parse_locale_c_recursion_native"), tput.copy()
+        BenchId("parse_locale_c_recursion_native")
     )
     m.bench_function[bench_parse_locale_c_recursion_libc](
-        BenchId("parse_locale_c_recursion_libc"), tput.copy()
+        BenchId("parse_locale_c_recursion_libc")
     )
 
     print(m)

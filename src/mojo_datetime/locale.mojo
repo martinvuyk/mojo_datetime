@@ -12,11 +12,14 @@
 # ===----------------------------------------------------------------------=== #
 """A module containing locale funcionality and definitions."""
 
+from std.bit import next_power_of_two
+from std.builtin.dtype import _uint_type_of_width
 from std.builtin.globals import global_constant
 from std.os import abort
 from std.utils import Variant
 from std.ffi import external_call, c_char, get_errno
-from std.sys.info import CompilationTarget
+from std.sys.info import CompilationTarget, bit_width_of
+from std.format._utils import _WriteBufferStack
 
 from .zoneinfo import Offset
 from .calendar import _NaiveDateTime, Calendar
@@ -536,7 +539,7 @@ struct LibCLocale(DTLocale):
             if dow == day:
                 return writer.write(self._get_langinfo(_ABDAY_1 + Int32(i)))
 
-        assert False, String(t"Unknown day of the week for datetime: {dt}")
+        assert False, t"Unknown day of the week for datetime: {dt}"
         writer.write(self._get_langinfo(_ABDAY_1 + 6))
 
     def parse_day_of_week_short[
@@ -579,7 +582,7 @@ struct LibCLocale(DTLocale):
             if dow == day:
                 return writer.write(self._get_langinfo(_DAY_1 + Int32(i)))
 
-        assert False, String(t"Unknown day of the week for datetime: {dt}")
+        assert False, t"Unknown day of the week for datetime: {dt}"
         writer.write(self._get_langinfo(_DAY_1 + 6))
 
     def parse_day_of_week_long[
@@ -825,7 +828,7 @@ trait NativeDTLocale(DTLocale):
             comptime day = _days[dt.calendar][i]
             if dow == day:
                 return writer.write(dow_str)
-        assert False, String(t"Unknown day of the week for datetime: {dt}")
+        assert False, t"Unknown day of the week for datetime: {dt}"
         comptime sunday = Self.day_of_week_names_short[6]
         writer.write(sunday)
 
@@ -870,7 +873,7 @@ trait NativeDTLocale(DTLocale):
             if dow == day:
                 return writer.write(dow_str)
 
-        assert False, String(t"Unknown day of the week for datetime: {dt}")
+        assert False, t"Unknown day of the week for datetime: {dt}"
         comptime sunday = Self.day_of_week_names_long[6]
         writer.write(sunday)
 
@@ -911,13 +914,13 @@ trait NativeDTLocale(DTLocale):
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
             dt.calendar.min_month == 1 and dt.calendar.max_month == 12
-        ), String(t"{this_impl} with a month range: [1, 12]")
+        ), t"{this_impl} with a month range: [1, 12]"
         comptime for i in range(len(Self.month_names_short)):
             comptime mon_num, mon_str = Self.month_names_short[i]
             if dt.dt.month == UInt8(mon_num):
                 return writer.write(mon_str)
 
-        assert False, String(t"Unknown month for datetime: {dt}")
+        assert False, t"Unknown month for datetime: {dt}"
         comptime _, last = Self.month_names_short[
             len(Self.month_names_short) - 1
         ]
@@ -945,7 +948,7 @@ trait NativeDTLocale(DTLocale):
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
             calendar.min_month == 1 and calendar.max_month == 12
-        ), String(t"{this_impl} with a month range: [1, 12]")
+        ), t"{this_impl} with a month range: [1, 12]"
         comptime for i in range(len(Self.month_names_short)):
             comptime mon_num, mon_str = Self.month_names_short[i]
             if read_from.startswith(mon_str):
@@ -963,13 +966,13 @@ trait NativeDTLocale(DTLocale):
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
             dt.calendar.min_month == 1 and dt.calendar.max_month == 12
-        ), String(t"{this_impl} with a month range: [1, 12]")
+        ), t"{this_impl} with a month range: [1, 12]"
         comptime for i in range(len(Self.month_names_long)):
             comptime mon_num, mon_str = Self.month_names_long[i]
             if dt.dt.month == UInt8(mon_num):
                 return writer.write(mon_str)
 
-        assert False, String(t"Unknown month for datetime: {dt}")
+        assert False, t"Unknown month for datetime: {dt}"
         comptime _, last = Self.month_names_short[
             len(Self.month_names_short) - 1
         ]
@@ -997,7 +1000,7 @@ trait NativeDTLocale(DTLocale):
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
             calendar.min_month == 1 and calendar.max_month == 12
-        ), String(t"{this_impl} with a month range: [1, 12]")
+        ), t"{this_impl} with a month range: [1, 12]"
         comptime for i in range(len(Self.month_names_long)):
             comptime mon_num, mon_str = Self.month_names_long[i]
             if read_from.startswith(mon_str):
@@ -1595,9 +1598,85 @@ def _is_valid_spec(spec: StringSlice[mut=False, _]) -> Tuple[Bool, String]:
     return True, ""
 
 
-@always_inline
-def _pad(value: Scalar, high_limit: type_of(value)) -> StaticString:
-    return "0" if value < high_limit else ""
+def _write_int_base_10_padded[
+    width: Int, pad: StaticString = "0"
+](mut writer: Some[Writer], decimal: Scalar):
+    comptime assert pad.byte_length() == 1
+    comptime pad_byte = Byte(ord(pad))
+    comptime `0` = Byte(ord("0"))
+
+    comptime if width <= 1:
+        return _write_int_base_10(writer, decimal)
+
+    comptime dtype = _uint_type_of_width[bit_width_of[decimal.dtype]()]()
+    var remainder = Scalar[dtype](abs(decimal))
+    comptime max_val = 10**width
+    comptime if UInt64(max_val) <= UInt64(decimal.MAX):
+        if remainder >= {max_val}:
+            return _write_int_base_10(writer, remainder)
+
+    var wrote_sign = decimal >= 0
+    var started_writing_num = False
+    comptime for i in reversed(range(width)):
+        comptime n = 10**i
+
+        comptime if decimal.dtype.is_signed():
+            if not wrote_sign and remainder * 10 >= {n}:
+                writer.write("-")
+                wrote_sign = True
+                continue
+
+        var val = `0` | UInt8(remainder // {n})
+        var res: UInt8
+        comptime if UInt64(n) > UInt64(decimal.MAX):
+            res = pad_byte
+        elif pad_byte == `0`:
+            res = val
+        else:
+            if not started_writing_num:
+                res = (remainder | {i == 0}).lt({n}).select(pad_byte, val)
+                started_writing_num = remainder >= {n}
+            else:
+                res = val
+
+        writer.write_string(
+            {ptr = UnsafePointer(to=res).bitcast[Byte](), length = 1}
+        )
+
+        comptime if UInt64(n) > UInt64(decimal.MAX):
+            continue
+        else:
+            remainder %= {n}
+
+
+def _write_int_base_10(mut writer: Some[Writer], decimal: Scalar):
+    comptime `0` = Byte(ord("0"))
+    comptime `-` = Byte(ord("-"))
+
+    comptime dtype = _uint_type_of_width[bit_width_of[decimal.dtype]()]()
+
+    var buf = SIMD[DType.uint8, bit_width_of[dtype]()]()
+    var ptr = UnsafePointer(to=buf).bitcast[Byte]()
+
+    var remainder: Scalar[dtype]
+    comptime if decimal.dtype.is_signed():
+        remainder = {abs(decimal)}
+    else:
+        remainder = {decimal}
+
+    var i = 0
+    while i == 0 or remainder > 0:
+        ptr[buf.size - (i + 1)] = `0` | UInt8(remainder % 10)
+        remainder //= 10
+        i += 1
+
+    comptime if decimal.dtype.is_signed():
+        ptr[buf.size - (i + 1)] = `-`
+        i += Int(decimal < 0)
+
+    writer.write_string(
+        {ptr = UnsafePointer(to=buf).bitcast[Byte]() + buf.size - i, length = i}
+    )
 
 
 def _write_to[
@@ -1621,57 +1700,39 @@ def _write_to[
         if c == FormatCode.w.value[0]:
             writer.write(dt.calendar.day_of_week(dt.dt))
         elif c == FormatCode.d.value[0]:
-            var d = dt.dt.day
-            writer.write(_pad(d, 10), d)
+            _write_int_base_10_padded[2](writer, dt.dt.day)
         elif c == FormatCode.e.value[0]:
-            var d = dt.dt.day
-            writer.write(" " if d < 10 else "", d)
+            writer.write(" " if dt.dt.day < 10 else "", dt.dt.day)
         elif c == FormatCode.m.value[0]:
-            var m = dt.dt.month
-            writer.write(_pad(m, 10), m)
+            _write_int_base_10_padded[2](writer, dt.dt.month)
         elif c == FormatCode.y.value[0]:
-            var y = dt.dt.year % 100
-            writer.write(_pad(y, 10), y)
+            _write_int_base_10_padded[2](writer, dt.dt.year % 100)
         elif c == FormatCode.Y.value[0]:
-            var y = dt.dt.year
-            writer.write(_pad(y, 1000), _pad(y, 100), _pad(y, 10), y)
+            _write_int_base_10_padded[4](writer, dt.dt.year)
         elif c == FormatCode.H.value[0]:
-            var h = dt.dt.hour
-            writer.write(_pad(h, 10), h)
+            _write_int_base_10_padded[2](writer, dt.dt.hour)
         elif c == FormatCode.I.value[0]:
             var h = dt.dt.hour % 12
             h += UInt8(12 if h == 0 else 0)
-            writer.write(_pad(h, 10), h)
+            _write_int_base_10_padded[2](writer, h)
         elif c == FormatCode.M.value[0]:
-            var m = dt.dt.minute
-            writer.write(_pad(m, 10), m)
+            _write_int_base_10_padded[2](writer, dt.dt.minute)
         elif c == FormatCode.S.value[0]:
-            var s = dt.dt.second
-            writer.write(_pad(s, 10), s)
+            _write_int_base_10_padded[2](writer, dt.dt.second)
         elif c == FormatCode.f.value[0]:
-            var f = dt.dt.m_second * 1000 + dt.dt.u_second
-            writer.write(
-                _pad(f, 100_000),
-                _pad(f, 10_000),
-                _pad(f, 1000),
-                _pad(f, 100),
-                _pad(f, 10),
-                f,
+            _write_int_base_10_padded[6](
+                writer, dt.dt.m_second * 1000 + dt.dt.u_second
             )
         elif c == FormatCode.j.value[0]:
-            var j = dt.calendar.day_of_year(dt.dt)
-            writer.write(_pad(j, 100), _pad(j, 10), j)
+            _write_int_base_10_padded[3](writer, dt.calendar.day_of_year(dt.dt))
         elif c == FormatCode.W.value[0]:
-            var w = dt.calendar.week_of_year(dt.dt)
-            writer.write(_pad(w, 10), w)
-        elif c == FormatCode.z.value[0]:
-            writer.write(
-                "+" if offset.is_east_utc else "-",
-                _pad(offset.hours, 10),
-                offset.hours,
-                _pad(offset.minutes, 10),
-                offset.minutes,
+            _write_int_base_10_padded[2](
+                writer, dt.calendar.week_of_year(dt.dt)
             )
+        elif c == FormatCode.z.value[0]:
+            writer.write("+" if offset.is_east_utc else "-")
+            _write_int_base_10_padded[2](writer, offset.hours)
+            _write_int_base_10_padded[2](writer, offset.minutes)
         elif c == FormatCode.`:z`.value[0]:
             if not s == ":z":
                 abort(t"Unsupported format code: '{s}'")
@@ -1723,59 +1784,41 @@ def _write_to[
         comptime if c == FormatCode.w.value[0]:
             writer.write(dt.calendar.day_of_week(dt.dt))
         elif c == FormatCode.d.value[0]:
-            var d = dt.dt.day
-            writer.write(_pad(d, 10), d)
+            _write_int_base_10_padded[2](writer, dt.dt.day)
         elif c == FormatCode.e.value[0]:
-            var d = dt.dt.day
-            writer.write(" " if d < 10 else "", d)
+            writer.write(" " if dt.dt.day < 10 else "", dt.dt.day)
         elif c == FormatCode.m.value[0]:
-            var m = dt.dt.month
-            writer.write(_pad(m, 10), m)
+            _write_int_base_10_padded[2](writer, dt.dt.month)
         elif c == FormatCode.y.value[0]:
-            var y = dt.dt.year % 100
-            writer.write(_pad(y, 10), y)
+            _write_int_base_10_padded[2](writer, dt.dt.year % 100)
         elif c == FormatCode.Y.value[0]:
-            var y = dt.dt.year
-            writer.write(_pad(y, 1000), _pad(y, 100), _pad(y, 10), y)
+            _write_int_base_10_padded[4](writer, dt.dt.year)
         elif c == FormatCode.H.value[0]:
-            var h = dt.dt.hour
-            writer.write(_pad(h, 10), h)
+            _write_int_base_10_padded[2](writer, dt.dt.hour)
         elif c == FormatCode.I.value[0]:
             var h = dt.dt.hour % 12
             h += UInt8(12 if h == 0 else 0)
-            writer.write(_pad(h, 10), h)
+            _write_int_base_10_padded[2](writer, h)
         elif c == FormatCode.M.value[0]:
-            var m = dt.dt.minute
-            writer.write(_pad(m, 10), m)
+            _write_int_base_10_padded[2](writer, dt.dt.minute)
         elif c == FormatCode.S.value[0]:
-            var s = dt.dt.second
-            writer.write(_pad(s, 10), s)
+            _write_int_base_10_padded[2](writer, dt.dt.second)
         elif c == FormatCode.f.value[0]:
-            var f = dt.dt.m_second * 1000 + dt.dt.u_second
-            writer.write(
-                _pad(f, 100_000),
-                _pad(f, 10_000),
-                _pad(f, 1000),
-                _pad(f, 100),
-                _pad(f, 10),
-                f,
+            _write_int_base_10_padded[6](
+                writer, dt.dt.m_second * 1000 + dt.dt.u_second
             )
         elif c == FormatCode.j.value[0]:
-            var j = dt.calendar.day_of_year(dt.dt)
-            writer.write(_pad(j, 100), _pad(j, 10), j)
+            _write_int_base_10_padded[3](writer, dt.calendar.day_of_year(dt.dt))
         elif c == FormatCode.W.value[0]:
-            var w = dt.calendar.week_of_year(dt.dt)
-            writer.write(_pad(w, 10), w)
-        elif c == FormatCode.z.value[0]:
-            writer.write(
-                "+" if offset.is_east_utc else "-",
-                _pad(offset.hours, 10),
-                offset.hours,
-                _pad(offset.minutes, 10),
-                offset.minutes,
+            _write_int_base_10_padded[2](
+                writer, dt.calendar.week_of_year(dt.dt)
             )
+        elif c == FormatCode.z.value[0]:
+            writer.write("+" if offset.is_east_utc else "-")
+            _write_int_base_10_padded[2](writer, offset.hours)
+            _write_int_base_10_padded[2](writer, offset.minutes)
         elif c == FormatCode.`:z`.value[0]:
-            comptime assert s == ":z", String(t"Unsupported format code: '{s}'")
+            comptime assert s == ":z", t"Unsupported format code: '{s}'"
             writer.write(offset)
         elif c == FormatCode.Z.value[0]:
             writer.write(tz_str)
@@ -1810,7 +1853,7 @@ def _write_to[
             elif c == FormatCode.X.value[0]:
                 write_to[loc_t.time_fmt_str]()
             else:
-                comptime assert False, String(t"Unsupported format code: '{s}'")
+                comptime assert False, t"Unsupported format code: '{s}'"
         else:
             var fmt_str: String
             comptime if c == FormatCode.c.value[0]:
@@ -1820,8 +1863,106 @@ def _write_to[
             elif c == FormatCode.X.value[0]:
                 fmt_str = loc.time_fmt[dt.calendar]()
             else:
-                comptime assert False, String(t"Unsupported format code: '{s}'")
+                comptime assert False, t"Unsupported format code: '{s}'"
             _write_to[tz_str](fmt_str, writer, dt, offset, loc)
+
+
+@always_inline
+def _write_to_iso[
+    spec: String
+](mut writer: Some[Writer], dt: _TzNaiveDateTime, offset: Offset):
+    comptime `0` = Byte(ord("0"))
+    comptime `+` = Byte(ord("+"))
+    comptime `-` = Byte(ord("-"))
+    comptime `:` = Byte(ord(":"))
+    comptime `T` = Byte(ord("T"))
+    comptime ` ` = Byte(ord(" "))
+
+    @always_inline
+    def vec[
+        *Ts: type_of(Byte)
+    ](*args: *Ts, out res: SIMD[DType.uint8, next_power_of_two(Ts.size)]):
+        res = {}
+        comptime for i in range(Ts.size):
+            res[i] = args[i]
+
+    @always_inline
+    def to_str(
+        ref vec: SIMD[DType.uint8, _], length: Int = vec.size
+    ) -> StringSlice[origin_of(vec)]:
+        return {ptr = UnsafePointer(to=vec).bitcast[Byte](), length = length}
+
+    var yyyy = `0` | UInt8(dt.dt.year // 1000)
+    var yyy_base = dt.dt.year % 1000
+    var yyy = `0` | UInt8(yyy_base // 100)
+    var yy_base = yyy_base % 100
+    var yy = `0` | UInt8(yy_base // 10)
+    var y = `0` | UInt8(yy_base % 10)
+    var monmon = `0` | UInt8(dt.dt.month // 10)
+    var mon = `0` | UInt8(dt.dt.month % 10)
+    var dd = `0` | UInt8(dt.dt.day // 10)
+    var d = `0` | UInt8(dt.dt.day % 10)
+    var hh = `0` | UInt8(dt.dt.hour // 10)
+    var h = `0` | UInt8(dt.dt.hour % 10)
+    var mm = `0` | UInt8(dt.dt.minute // 10)
+    var m = `0` | UInt8(dt.dt.minute % 10)
+    var ss = `0` | UInt8(dt.dt.second // 10)
+    var s = `0` | UInt8(dt.dt.second % 10)
+
+    comptime if spec == IsoFormat.YYYYMMDD:
+        var res = vec(yyyy, yyy, yy, y, monmon, mon, dd, d)
+        writer.write_string(to_str(res))
+    elif spec == IsoFormat.YYYY_MM_DD:
+        var res = vec(yyyy, yyy, yy, y, `-`, monmon, mon, `-`, dd, d)
+        writer.write_string(to_str(res, 10))
+    elif spec == IsoFormat.HHMMSS:
+        var hhmmss = vec(hh, h, mm, m, ss, s)
+        writer.write_string(to_str(hhmmss, 6))
+    elif spec == IsoFormat.HH_MM_SS:
+        var res = vec(hh, h, `:`, mm, m, `:`, ss, s)
+        writer.write_string(to_str(res))
+    elif spec == IsoFormat.YYYYMMDDHHMMSS:
+        var res = vec(yyyy, yyy, yy, y, monmon, mon, dd, d, hh, h, mm, m, ss, s)
+        writer.write_string(to_str(res, 14))
+    elif spec == IsoFormat.YYYYMMDDHHMMSSTZD:
+        var sign = Scalar[DType.bool](offset.is_east_utc).select(`+`, `-`)
+        # fmt: off
+        var res = vec(
+            yyyy, yyy, yy, y, monmon, mon, dd, d, hh, h, mm, m, ss, s,
+            sign, `0` | (offset.hours // 10), `0` | (offset.hours % 10),
+            `0` | (offset.minutes // 10), `0` | (offset.minutes % 10),
+        )
+        # fmt: on
+        writer.write_string(to_str(res, 19))
+    elif spec == IsoFormat.YYYY_MM_DD___HH_MM_SS:
+        # fmt: off
+        var res = vec(
+            yyyy, yyy, yy, y, `-`, monmon, mon, `-`, dd, d, ` `,
+            hh, h, `:`, mm, m, `:`, ss, s,
+        )
+        # fmt: on
+        writer.write_string(to_str(res, 19))
+    elif spec == IsoFormat.YYYY_MM_DD_T_HH_MM_SS:
+        # fmt: off
+        var res = vec(
+            yyyy, yyy, yy, y, `-`, monmon, mon, `-`, dd, d, `T`,
+            hh, h, `:`, mm, m, `:`, ss, s,
+        )
+        # fmt: on
+        writer.write_string(to_str(res, 19))
+    elif spec == IsoFormat.YYYY_MM_DD_T_HH_MM_SS_TZD:
+        var sign = Scalar[DType.bool](offset.is_east_utc).select(`+`, `-`)
+        # fmt: off
+        var res = vec(
+            yyyy, yyy, yy, y, `-`, monmon, mon, `-`, dd, d, `T`,
+            hh, h, `:`, mm, m, `:`, ss, s,
+            sign, `0` | (offset.hours // 10), `0` | (offset.hours % 10), `:`,
+            `0` | (offset.minutes // 10), `0` | (offset.minutes % 10),
+        )
+        # fmt: on
+        writer.write_string(to_str(res, 25))
+    else:
+        comptime assert False, "IsoFormat not implemented."
 
 
 @always_inline
@@ -1836,27 +1977,81 @@ def _write_to[
     comptime validated = _is_valid_spec(spec)
     comptime assert validated[0], validated[1]
 
-    var loc = locale^.or_else({})
-    _write_to[spec, tz_str](writer, dt, offset, loc)
+    comptime if spec in [
+        IsoFormat.YYYYMMDD,
+        IsoFormat.YYYY_MM_DD,
+        IsoFormat.HHMMSS,
+        IsoFormat.HH_MM_SS,
+        IsoFormat.YYYYMMDDHHMMSS,
+        IsoFormat.YYYYMMDDHHMMSSTZD,
+        IsoFormat.YYYY_MM_DD___HH_MM_SS,
+        IsoFormat.YYYY_MM_DD_T_HH_MM_SS,
+        IsoFormat.YYYY_MM_DD_T_HH_MM_SS_TZD,
+    ]:
+        _write_to_iso[spec](writer, dt, offset)
+    else:
+        var buf = _WriteBufferStack(writer)
+        var loc = locale^.or_else({})
+        _write_to[spec, tz_str](buf, dt, offset, loc)
+        buf.flush()
 
 
-def _parse_num_or_raise[
-    origin: ImmutOrigin,
-    //,
-    end: Int,
-    min_value: Scalar,
-    max_value: type_of(min_value),
-    value_str: String,
-](read_from: StringSlice[origin]) raises -> Tuple[UInt16, type_of(read_from)]:
+@always_inline
+def _slice(
+    read_from: StringSlice[mut=False, _], *, start: Int
+) -> type_of(read_from):
+    return {
+        ptr = read_from.unsafe_ptr() + start,
+        length = read_from.byte_length() - start,
+    }
+
+
+@always_inline
+def _slice(
+    read_from: StringSlice[mut=False, _], *, end: Int
+) -> type_of(read_from):
+    return {ptr = read_from.unsafe_ptr(), length = end}
+
+
+def _parse_pure_int[
+    end: Int, dtype: DType
+](read_from: StringSlice[mut=False, _]) raises -> Scalar[dtype]:
+    comptime `0` = Byte(ord("0"))
+    comptime `9` = Byte(ord("9"))
+
     if read_from.byte_length() < end:
         raise Error(
             "Input string is shorter than what the format code requires."
         )
+    var ptr = read_from.unsafe_ptr()
+    var res = Scalar[dtype](0)
+    var i = 0
+    while i < end:
+        res *= 10
+        var val = ptr[i]
+        if not (`0` <= val <= `9`):
+            raise Error(
+                t"Unexpected character in: '{_slice(read_from, end=end)}'"
+            )
+        res += Scalar[dtype](val & 0x0F)
+        i += 1
+
+    return res
+
+
+def _parse_num_or_raise[
+    end: Int,
+    min_value: Scalar,
+    max_value: type_of(min_value),
+    value_str: String,
+](read_from: StringSlice[mut=False, _]) raises -> Tuple[
+    UInt16, type_of(read_from)
+]:
     comptime v_in = "The value is expected to be in the range"
-    var value = UInt16(atol(read_from[byte=:end]))
-    if not (min_value <= type_of(min_value)(value) <= max_value):
+    var value = _parse_pure_int[end, min_value.dtype](read_from)
+    if not (min_value <= value <= max_value):
         raise Error(t"{v_in} {min_value} <= {value_str} <= {max_value}")
-    return value, read_from[byte=end:]
+    return UInt16(value), _slice(read_from, start=end)
 
 
 def _parse[
@@ -1883,7 +2078,7 @@ def _parse[
             if read_from.byte_length() < s.byte_length():
                 raise Error("Input string is shorter than the format spec.")
             elif read_from.byte_length() > s.byte_length():
-                read_from = read_from[byte = s.byte_length() :]
+                read_from = _slice(read_from, start=s.byte_length())
             continue
 
         var c = s.unsafe_ptr()[0]
@@ -1979,16 +2174,18 @@ def _parse[
         elif c == FormatCode.z.value[0]:
             var of, length = Offset.parse(read_from)
             offset = of
-            read_from = read_from[byte=length:]
+            read_from = _slice(read_from, start=length)
         elif c == FormatCode.`:z`.value[0]:
             if not s == ":z":
                 raise Error(t"Unsupported format code: '{s}'")
             var of, length = Offset.parse(read_from)
             offset = of
-            read_from = read_from[byte=length:]
+            read_from = _slice(read_from, start=length)
         elif c == FormatCode.Z.value[0]:
             var idx = read_from.find(" ")
-            var maybe_tz_str = read_from[byte=:idx] if idx != -1 else read_from
+            var maybe_tz_str = (
+                _slice(read_from, end=idx) if idx != -1 else read_from
+            )
             # FIXME: for some reason support for this was blocked
             # var maybe_zone_info = global_constant[zone_info_dict]().get(
             #     String(maybe_tz_str)  # FIXME: we don't need to allocate here
@@ -2001,7 +2198,7 @@ def _parse[
                     "Can't find zone info for timezone string '{maybe_tz_str}'"
                 )
             zone_info = maybe_zone_info.value()
-            read_from = read_from[byte = maybe_tz_str.byte_length() :]
+            read_from = _slice(read_from, start=maybe_tz_str.byte_length())
         elif c == FormatCode.`%`.value[0]:
             if not read_from.startswith("%"):
                 raise Error("Expected a '%' character")
@@ -2010,22 +2207,22 @@ def _parse[
             var _, bytes_read = locale.parse_day_of_week_short[calendar](
                 read_from
             )
-            read_from = read_from[byte = Int(bytes_read) :]
+            read_from = _slice(read_from, start=bytes_read)
         elif c == FormatCode.A.value[0]:
             var _, bytes_read = locale.parse_day_of_week_long[calendar](
                 read_from
             )
-            read_from = read_from[byte = Int(bytes_read) :]
+            read_from = _slice(read_from, start=bytes_read)
         elif c == FormatCode.b.value[0]:
             var month, bytes_read = locale.parse_month_short[calendar](
                 read_from
             )
             dt.dt.month = month
-            read_from = read_from[byte = Int(bytes_read) :]
+            read_from = _slice(read_from, start=bytes_read)
         elif c == FormatCode.B.value[0]:
             var month, bytes_read = locale.parse_month_long[calendar](read_from)
             dt.dt.month = month
-            read_from = read_from[byte = Int(bytes_read) :]
+            read_from = _slice(read_from, start=bytes_read)
         elif c == FormatCode.p.value[0]:
             var is_pm, bytes_read = locale.parse_am_pm[calendar](read_from)
             comptime middle = (
@@ -2036,7 +2233,7 @@ def _parse[
                     0 if is_pm else -12
                 )
             )
-            read_from = read_from[byte = Int(bytes_read) :]
+            read_from = _slice(read_from, start=bytes_read)
         else:
             var fmt_str: String
             if c == FormatCode.c.value[0]:
@@ -2082,7 +2279,7 @@ def _parse[
         comptime if not is_spec:
             if read_from.byte_length() < s.byte_length():
                 raise Error("Input string is shorter than the format spec.")
-            read_from = read_from[byte = s.byte_length() :]
+            read_from = _slice(read_from, start=s.byte_length())
             continue
 
         comptime c = s.unsafe_ptr()[0]
@@ -2178,15 +2375,17 @@ def _parse[
         elif c == FormatCode.z.value[0]:
             var of, length = Offset.parse(read_from)
             offset = of
-            read_from = read_from[byte=length:]
+            read_from = _slice(read_from, start=length)
         elif c == FormatCode.`:z`.value[0]:
-            comptime assert s == ":z", String(t"Unsupported format code: '{s}'")
+            comptime assert s == ":z", t"Unsupported format code: '{s}'"
             var of, length = Offset.parse(read_from)
             offset = of
-            read_from = read_from[byte=length:]
+            read_from = _slice(read_from, start=length)
         elif c == FormatCode.Z.value[0]:
             var idx = read_from.find(" ")
-            var maybe_tz_str = read_from[byte=:idx] if idx != -1 else read_from
+            var maybe_tz_str = (
+                _slice(read_from, end=idx) if idx != -1 else read_from
+            )
             # FIXME: for some reason support for this was blocked
             # var maybe_zone_info = global_constant[zone_info_dict]().get(
             #     String(maybe_tz_str)  # FIXME: we don't need to allocate here
@@ -2199,25 +2398,25 @@ def _parse[
                     "Can't find zone info for timezone string '{maybe_tz_str}'"
                 )
             zone_info = maybe_zone_info.value()
-            read_from = read_from[byte = maybe_tz_str.byte_length() :]
+            read_from = _slice(read_from, start=maybe_tz_str.byte_length())
         elif c == FormatCode.`%`.value[0]:
             if not read_from.startswith("%"):
                 raise Error("Expected a '%' character")
             read_from = read_from[byte=1:]
         elif c == FormatCode.a.value[0]:
             var _, bytes_read = loc.parse_day_of_week_short[calendar](read_from)
-            read_from = read_from[byte = Int(bytes_read) :]
+            read_from = _slice(read_from, start=bytes_read)
         elif c == FormatCode.A.value[0]:
             var _, bytes_read = loc.parse_day_of_week_long[calendar](read_from)
-            read_from = read_from[byte = Int(bytes_read) :]
+            read_from = _slice(read_from, start=bytes_read)
         elif c == FormatCode.b.value[0]:
             var month, bytes_read = loc.parse_month_short[calendar](read_from)
             dt.dt.month = month
-            read_from = read_from[byte = Int(bytes_read) :]
+            read_from = _slice(read_from, start=bytes_read)
         elif c == FormatCode.B.value[0]:
             var month, bytes_read = loc.parse_month_long[calendar](read_from)
             dt.dt.month = month
-            read_from = read_from[byte = Int(bytes_read) :]
+            read_from = _slice(read_from, start=bytes_read)
         elif c == FormatCode.p.value[0]:
             comptime assert (
                 "%I" in spec
@@ -2231,7 +2430,7 @@ def _parse[
                     0 if is_pm else -12
                 )
             )
-            read_from = read_from[byte = Int(bytes_read) :]
+            read_from = _slice(read_from, start=bytes_read)
         elif conforms_to(locale_t, NativeDTLocale):
 
             @always_inline
@@ -2255,7 +2454,7 @@ def _parse[
             elif c == FormatCode.X.value[0]:
                 parse[loc_t.time_fmt_str]()
             else:
-                comptime assert False, String(t"Unsupported format code: '{s}'")
+                comptime assert False, t"Unsupported format code: '{s}'"
         else:
             var fmt_str: String
             comptime if c == FormatCode.c.value[0]:
@@ -2265,7 +2464,7 @@ def _parse[
             elif c == FormatCode.X.value[0]:
                 fmt_str = loc.time_fmt[calendar]()
             else:
-                comptime assert False, String(t"Unsupported format code: '{s}'")
+                comptime assert False, t"Unsupported format code: '{s}'"
             _parse[calendar, zone_info_dict](
                 fmt_str,
                 read_from,

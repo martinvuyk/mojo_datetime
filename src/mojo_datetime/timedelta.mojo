@@ -13,12 +13,10 @@
 """A module that defines a time-unit aware `TimeDelta`."""
 from .calendar import Calendar, PythonCalendar, SITimeUnit
 
-comptime _default_dtype = DType.uint64
-
 
 # FIXME(https://github.com/modular/modular/issues/6485): make this TrivialRegisterPassable
 struct TimeDelta[
-    unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = _default_dtype
+    unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = DType.uint64
 ](Comparable, ImplicitlyCopyable):
     """A struct representing a positive (incl. 0) time delta.
 
@@ -63,8 +61,10 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType where v_dtype.is_unsigned() = _default_dtype
-    ](*, days: Scalar[v_dtype], out self: TimeDelta[SITimeUnit.DAYS, v_dtype]):
+        v_dtype: DType = Self.dtype
+    ](
+        *, days: Scalar[v_dtype], out self: TimeDelta[SITimeUnit.DAYS, v_dtype]
+    ) where v_dtype.is_unsigned():
         """Construct a `TimeDelta`.
 
         Parameters:
@@ -78,12 +78,12 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType where v_dtype.is_unsigned() = _default_dtype
+        v_dtype: DType = Self.dtype
     ](
         *,
         hours: Scalar[v_dtype],
         out self: TimeDelta[SITimeUnit.HOURS, v_dtype],
-    ):
+    ) where v_dtype.is_unsigned():
         """Construct a `TimeDelta`.
 
         Parameters:
@@ -97,12 +97,12 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType where v_dtype.is_unsigned() = _default_dtype
+        v_dtype: DType = Self.dtype
     ](
         *,
         minutes: Scalar[v_dtype],
         out self: TimeDelta[SITimeUnit.MINUTES, v_dtype],
-    ):
+    ) where v_dtype.is_unsigned():
         """Construct a `TimeDelta`.
 
         Parameters:
@@ -116,12 +116,12 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType where v_dtype.is_unsigned() = _default_dtype
+        v_dtype: DType = Self.dtype
     ](
         *,
         seconds: Scalar[v_dtype],
         out self: TimeDelta[SITimeUnit.SECONDS, v_dtype],
-    ):
+    ) where v_dtype.is_unsigned():
         """Construct a `TimeDelta`.
 
         Parameters:
@@ -135,12 +135,12 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType where v_dtype.is_unsigned() = _default_dtype
+        v_dtype: DType = Self.dtype
     ](
         *,
         milliseconds: Scalar[v_dtype],
         out self: TimeDelta[SITimeUnit.MILLISECONDS, v_dtype],
-    ):
+    ) where v_dtype.is_unsigned():
         """Construct a `TimeDelta`.
 
         Parameters:
@@ -154,12 +154,12 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType where v_dtype.is_unsigned() = _default_dtype
+        v_dtype: DType = Self.dtype
     ](
         *,
         microseconds: Scalar[v_dtype],
         out self: TimeDelta[SITimeUnit.MICROSECONDS, v_dtype],
-    ):
+    ) where v_dtype.is_unsigned():
         """Construct a `TimeDelta`.
 
         Parameters:
@@ -173,12 +173,12 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType where v_dtype.is_unsigned() = _default_dtype
+        v_dtype: DType = Self.dtype
     ](
         *,
         nanoseconds: Scalar[v_dtype],
         out self: TimeDelta[SITimeUnit.NANOSECONDS, v_dtype],
-    ):
+    ) where v_dtype.is_unsigned():
         """Construct a `TimeDelta`.
 
         Parameters:

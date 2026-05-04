@@ -529,9 +529,8 @@ struct DateTime[
 
     @always_inline
     def to_delta_since_epoch[
-        unit: SITimeUnit = SITimeUnit.SECONDS,
-        dtype: DType where dtype.is_unsigned() = DType.uint64,
-    ](self) -> TimeDelta[unit, dtype]:
+        unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = DType.uint64
+    ](self) -> TimeDelta[unit, dtype] where dtype.is_unsigned():
         """The amount of time since the begining of the calendar's epoch.
 
         Parameters:
@@ -549,9 +548,8 @@ struct DateTime[
 
     @always_inline
     def to_delta_since_unix_epoch[
-        unit: SITimeUnit = SITimeUnit.SECONDS,
-        dtype: DType where dtype.is_unsigned() = DType.uint64,
-    ](self) -> Tuple[Bool, TimeDelta[unit, dtype]]:
+        unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = DType.uint64
+    ](self) -> Tuple[Bool, TimeDelta[unit, dtype]] where dtype.is_unsigned():
         """The amount of time since the begining of the unix epoch (1970-01-01).
 
         Parameters:
@@ -738,9 +736,10 @@ struct DateTime[
 
     @always_inline
     def subtract[
-        unit: SITimeUnit = SITimeUnit.SECONDS,
-        dtype: DType where dtype.is_unsigned() = DType.uint64,
-    ](var self, other: Self) -> TimeDelta[unit, dtype]:
+        unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = DType.uint64
+    ](var self, other: Self) -> TimeDelta[
+        unit, dtype
+    ] where dtype.is_unsigned():
         """Subtracts another `DateTime` and returns the absolute time delta.
 
         Parameters:
