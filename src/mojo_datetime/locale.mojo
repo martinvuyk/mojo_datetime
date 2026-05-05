@@ -459,7 +459,7 @@ comptime _posix_days[calendar: Calendar]: InlineArray[
 struct LibCLocale(DTLocale):
     """A POSIX standard C locale via FFI with Libc."""
 
-    comptime _ptr = Optional[OpaquePointer[MutExternalOrigin]]
+    comptime _ptr = OpaquePointer[MutExternalOrigin]
     var _loc: Self._ptr
 
     def __init__(out self, var locale_name: String) raises:
@@ -539,7 +539,7 @@ struct LibCLocale(DTLocale):
             if dow == day:
                 return writer.write(self._get_langinfo(_ABDAY_1 + Int32(i)))
 
-        assert False, t"Unknown day of the week for datetime: {dt}"
+        assert False, String(t"Unknown day of the week for datetime: {dt}")
         writer.write(self._get_langinfo(_ABDAY_1 + 6))
 
     def parse_day_of_week_short[
@@ -582,7 +582,7 @@ struct LibCLocale(DTLocale):
             if dow == day:
                 return writer.write(self._get_langinfo(_DAY_1 + Int32(i)))
 
-        assert False, t"Unknown day of the week for datetime: {dt}"
+        assert False, String(t"Unknown day of the week for datetime: {dt}")
         writer.write(self._get_langinfo(_DAY_1 + 6))
 
     def parse_day_of_week_long[
@@ -828,7 +828,7 @@ trait NativeDTLocale(DTLocale):
             comptime day = _days[dt.calendar][i]
             if dow == day:
                 return writer.write(dow_str)
-        assert False, t"Unknown day of the week for datetime: {dt}"
+        assert False, String(t"Unknown day of the week for datetime: {dt}")
         comptime sunday = Self.day_of_week_names_short[6]
         writer.write(sunday)
 
@@ -873,7 +873,7 @@ trait NativeDTLocale(DTLocale):
             if dow == day:
                 return writer.write(dow_str)
 
-        assert False, t"Unknown day of the week for datetime: {dt}"
+        assert False, String(t"Unknown day of the week for datetime: {dt}")
         comptime sunday = Self.day_of_week_names_long[6]
         writer.write(sunday)
 
@@ -914,13 +914,13 @@ trait NativeDTLocale(DTLocale):
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
             dt.calendar.min_month == 1 and dt.calendar.max_month == 12
-        ), t"{this_impl} with a month range: [1, 12]"
+        ), String(t"{this_impl} with a month range: [1, 12]")
         comptime for i in range(len(Self.month_names_short)):
             comptime mon_num, mon_str = Self.month_names_short[i]
             if dt.dt.month == UInt8(mon_num):
                 return writer.write(mon_str)
 
-        assert False, t"Unknown month for datetime: {dt}"
+        assert False, String(t"Unknown month for datetime: {dt}")
         comptime _, last = Self.month_names_short[
             len(Self.month_names_short) - 1
         ]
@@ -948,7 +948,7 @@ trait NativeDTLocale(DTLocale):
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
             calendar.min_month == 1 and calendar.max_month == 12
-        ), t"{this_impl} with a month range: [1, 12]"
+        ), String(t"{this_impl} with a month range: [1, 12]")
         comptime for i in range(len(Self.month_names_short)):
             comptime mon_num, mon_str = Self.month_names_short[i]
             if read_from.startswith(mon_str):
@@ -966,13 +966,13 @@ trait NativeDTLocale(DTLocale):
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
             dt.calendar.min_month == 1 and dt.calendar.max_month == 12
-        ), t"{this_impl} with a month range: [1, 12]"
+        ), String(t"{this_impl} with a month range: [1, 12]")
         comptime for i in range(len(Self.month_names_long)):
             comptime mon_num, mon_str = Self.month_names_long[i]
             if dt.dt.month == UInt8(mon_num):
                 return writer.write(mon_str)
 
-        assert False, t"Unknown month for datetime: {dt}"
+        assert False, String(t"Unknown month for datetime: {dt}")
         comptime _, last = Self.month_names_short[
             len(Self.month_names_short) - 1
         ]
@@ -1000,7 +1000,7 @@ trait NativeDTLocale(DTLocale):
         comptime this_impl = "This implementation is only for calendars"
         comptime assert (
             calendar.min_month == 1 and calendar.max_month == 12
-        ), t"{this_impl} with a month range: [1, 12]"
+        ), String(t"{this_impl} with a month range: [1, 12]")
         comptime for i in range(len(Self.month_names_long)):
             comptime mon_num, mon_str = Self.month_names_long[i]
             if read_from.startswith(mon_str):
@@ -1818,7 +1818,7 @@ def _write_to[
             _write_int_base_10_padded[2](writer, offset.hours)
             _write_int_base_10_padded[2](writer, offset.minutes)
         elif c == FormatCode.`:z`.value[0]:
-            comptime assert s == ":z", t"Unsupported format code: '{s}'"
+            comptime assert s == ":z", String(t"Unsupported format code: '{s}'")
             writer.write(offset)
         elif c == FormatCode.Z.value[0]:
             writer.write(tz_str)
@@ -1836,10 +1836,9 @@ def _write_to[
             loc.am_pm(writer, dt)
         elif conforms_to(locale_t, NativeDTLocale):
 
+            @parameter
             @always_inline
-            def write_to[
-                fmt_str: String
-            ]() {mut writer, read dt, read offset, read loc}:
+            def write_to[fmt_str: String]():
                 _write_to[fmt_str, tz_str, locale_t](writer, dt, offset)
 
             comptime loc_t = type_of(
@@ -1853,7 +1852,7 @@ def _write_to[
             elif c == FormatCode.X.value[0]:
                 write_to[loc_t.time_fmt_str]()
             else:
-                comptime assert False, t"Unsupported format code: '{s}'"
+                comptime assert False, String(t"Unsupported format code: '{s}'")
         else:
             var fmt_str: String
             comptime if c == FormatCode.c.value[0]:
@@ -1863,7 +1862,7 @@ def _write_to[
             elif c == FormatCode.X.value[0]:
                 fmt_str = loc.time_fmt[dt.calendar]()
             else:
-                comptime assert False, t"Unsupported format code: '{s}'"
+                comptime assert False, String(t"Unsupported format code: '{s}'")
             _write_to[tz_str](fmt_str, writer, dt, offset, loc)
 
 
@@ -1881,9 +1880,12 @@ def _write_to_iso[
     @always_inline
     def vec[
         *Ts: type_of(Byte)
-    ](*args: *Ts, out res: SIMD[DType.uint8, next_power_of_two(Ts.size)]):
+    ](
+        *args: *Ts,
+        out res: SIMD[DType.uint8, next_power_of_two(args.__len__())],
+    ):
         res = {}
-        comptime for i in range(Ts.size):
+        comptime for i in range(args.__len__()):
             res[i] = args[i]
 
     @always_inline
@@ -2377,7 +2379,7 @@ def _parse[
             offset = of
             read_from = _slice(read_from, start=length)
         elif c == FormatCode.`:z`.value[0]:
-            comptime assert s == ":z", t"Unsupported format code: '{s}'"
+            comptime assert s == ":z", String(t"Unsupported format code: '{s}'")
             var of, length = Offset.parse(read_from)
             offset = of
             read_from = _slice(read_from, start=length)
@@ -2433,8 +2435,9 @@ def _parse[
             read_from = _slice(read_from, start=bytes_read)
         elif conforms_to(locale_t, NativeDTLocale):
 
+            @parameter
             @always_inline
-            def parse[fmt_str: String]() raises {mut, read loc}:
+            def parse[fmt_str: String]() raises:
                 _parse[fmt_str, calendar, zone_info_dict, locale_t](
                     read_from,
                     dt,
@@ -2454,7 +2457,7 @@ def _parse[
             elif c == FormatCode.X.value[0]:
                 parse[loc_t.time_fmt_str]()
             else:
-                comptime assert False, t"Unsupported format code: '{s}'"
+                comptime assert False, String(t"Unsupported format code: '{s}'")
         else:
             var fmt_str: String
             comptime if c == FormatCode.c.value[0]:
@@ -2464,7 +2467,7 @@ def _parse[
             elif c == FormatCode.X.value[0]:
                 fmt_str = loc.time_fmt[calendar]()
             else:
-                comptime assert False, t"Unsupported format code: '{s}'"
+                comptime assert False, String(t"Unsupported format code: '{s}'")
             _parse[calendar, zone_info_dict](
                 fmt_str,
                 read_from,

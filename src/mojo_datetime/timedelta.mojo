@@ -61,7 +61,7 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType = Self.dtype
+        v_dtype: DType = DType.uint64
     ](
         *, days: Scalar[v_dtype], out self: TimeDelta[SITimeUnit.DAYS, v_dtype]
     ) where v_dtype.is_unsigned():
@@ -78,7 +78,7 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType = Self.dtype
+        v_dtype: DType = DType.uint64
     ](
         *,
         hours: Scalar[v_dtype],
@@ -97,7 +97,7 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType = Self.dtype
+        v_dtype: DType = DType.uint64
     ](
         *,
         minutes: Scalar[v_dtype],
@@ -116,7 +116,7 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType = Self.dtype
+        v_dtype: DType = DType.uint64
     ](
         *,
         seconds: Scalar[v_dtype],
@@ -135,7 +135,7 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType = Self.dtype
+        v_dtype: DType = DType.uint64
     ](
         *,
         milliseconds: Scalar[v_dtype],
@@ -154,7 +154,7 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType = Self.dtype
+        v_dtype: DType = DType.uint64
     ](
         *,
         microseconds: Scalar[v_dtype],
@@ -173,7 +173,7 @@ struct TimeDelta[
 
     @always_inline
     def __init__[
-        v_dtype: DType = Self.dtype
+        v_dtype: DType = DType.uint64
     ](
         *,
         nanoseconds: Scalar[v_dtype],

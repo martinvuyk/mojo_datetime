@@ -469,7 +469,8 @@ struct ZoneInfo(UTCZoneInfo):
     ) -> Tuple[type_of(reference_dt), type_of(reference_dt)]:
         comptime DT = type_of(reference_dt)
 
-        def _datetime_for_rule(var dt: DT, rule: TzDT) {read} -> DT:
+        @parameter
+        def _datetime_for_rule(var dt: DT, rule: TzDT) -> DT:
             var maxdays = dt.calendar.max_days_in_month(dt.dt)
             var iterable = range(0, Int(maxdays), step=1)
             if rule.from_end_of_month:
