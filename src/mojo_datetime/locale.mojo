@@ -1598,67 +1598,14 @@ def _is_valid_spec(spec: StringSlice[mut=False, _]) -> Tuple[Bool, String]:
     return True, ""
 
 
-def _write_int_base_10_padded[
-    width: Int, pad: StaticString = "0"
+def _write_int_base_10[
+    pad_width: Int = 0, pad: StaticString = "0"
 ](mut writer: Some[Writer], decimal: Scalar):
+    # NOTE: can't use Byte(ord()) here due to recursion
+    comptime `0` = 0x30
+    comptime `-` = 0x2D
     comptime assert pad.byte_length() == 1
-    comptime pad_byte = Byte(ord(pad))
-    comptime `0` = Byte(ord("0"))
-
-    comptime if width <= 1:
-        return _write_int_base_10(writer, decimal)
-
-    comptime dtype = _uint_type_of_width[bit_width_of[decimal.dtype]()]()
-    var remainder = Scalar[dtype](abs(decimal))
-    comptime max_val = 10**width
-    comptime if UInt64(max_val) <= UInt64(decimal.MAX):
-        if remainder >= {max_val}:
-            return _write_int_base_10(writer, remainder)
-
-    var buf = SIMD[DType.uint8, next_power_of_two(width)]()
-
-    var wrote_sign = decimal >= 0
-    var started_writing_num = False
-    comptime for i in reversed(range(width)):
-        comptime n = 10**i
-
-        comptime if decimal.dtype.is_signed():
-            if not wrote_sign and remainder * 10 >= {n}:
-                writer.write("-")
-                wrote_sign = True
-                started_writing_num = True
-                continue
-
-        var val = `0` | UInt8(remainder // {n})
-        var res: UInt8
-        comptime if UInt64(n) > UInt64(decimal.MAX):
-            res = pad_byte
-        elif pad_byte == `0`:
-            res = val
-        else:
-            if not started_writing_num:
-                res = (remainder | {i == 0}).lt({n}).select(pad_byte, val)
-                started_writing_num = remainder >= {n}
-            else:
-                res = val
-        buf[buf.size - (i + 1)] = res
-
-        comptime if UInt64(n) > UInt64(decimal.MAX):
-            continue
-        else:
-            remainder %= {n}
-
-    writer.write_string(
-        {
-            ptr = UnsafePointer(to=buf).bitcast[Byte]() + buf.size - width,
-            length = width,
-        }
-    )
-
-
-def _write_int_base_10(mut writer: Some[Writer], decimal: Scalar):
-    comptime `0` = Byte(ord("0"))
-    comptime `-` = Byte(ord("-"))
+    comptime pad_byte = pad.unsafe_ptr()[0]
 
     comptime dtype = _uint_type_of_width[bit_width_of[decimal.dtype]()]()
 
@@ -1680,6 +1627,11 @@ def _write_int_base_10(mut writer: Some[Writer], decimal: Scalar):
     comptime if decimal.dtype.is_signed():
         ptr[buf.size - (i + 1)] = `-`
         i += Int(decimal < 0)
+
+    comptime if pad_width > 1:
+        while pad_width > i:
+            ptr[buf.size - (i + 1)] = pad_byte
+            i += 1
 
     writer.write_string(
         {ptr = UnsafePointer(to=buf).bitcast[Byte]() + buf.size - i, length = i}
@@ -1707,39 +1659,37 @@ def _write_to[
         if c == FormatCode.w.value[0]:
             writer.write(dt.calendar.day_of_week(dt.dt))
         elif c == FormatCode.d.value[0]:
-            _write_int_base_10_padded[2](writer, dt.dt.day)
+            _write_int_base_10[2](writer, dt.dt.day)
         elif c == FormatCode.e.value[0]:
-            _write_int_base_10_padded[2, " "](writer, dt.dt.day)
+            _write_int_base_10[2, " "](writer, dt.dt.day)
         elif c == FormatCode.m.value[0]:
-            _write_int_base_10_padded[2](writer, dt.dt.month)
+            _write_int_base_10[2](writer, dt.dt.month)
         elif c == FormatCode.y.value[0]:
-            _write_int_base_10_padded[2](writer, dt.dt.year % 100)
+            _write_int_base_10[2](writer, dt.dt.year % 100)
         elif c == FormatCode.Y.value[0]:
-            _write_int_base_10_padded[4](writer, dt.dt.year)
+            _write_int_base_10[4](writer, dt.dt.year)
         elif c == FormatCode.H.value[0]:
-            _write_int_base_10_padded[2](writer, dt.dt.hour)
+            _write_int_base_10[2](writer, dt.dt.hour)
         elif c == FormatCode.I.value[0]:
             var h = dt.dt.hour % 12
             h += UInt8(12 if h == 0 else 0)
-            _write_int_base_10_padded[2](writer, h)
+            _write_int_base_10[2](writer, h)
         elif c == FormatCode.M.value[0]:
-            _write_int_base_10_padded[2](writer, dt.dt.minute)
+            _write_int_base_10[2](writer, dt.dt.minute)
         elif c == FormatCode.S.value[0]:
-            _write_int_base_10_padded[2](writer, dt.dt.second)
+            _write_int_base_10[2](writer, dt.dt.second)
         elif c == FormatCode.f.value[0]:
-            _write_int_base_10_padded[6](
+            _write_int_base_10[6](
                 writer, dt.dt.m_second * 1000 + dt.dt.u_second
             )
         elif c == FormatCode.j.value[0]:
-            _write_int_base_10_padded[3](writer, dt.calendar.day_of_year(dt.dt))
+            _write_int_base_10[3](writer, dt.calendar.day_of_year(dt.dt))
         elif c == FormatCode.W.value[0]:
-            _write_int_base_10_padded[2](
-                writer, dt.calendar.week_of_year(dt.dt)
-            )
+            _write_int_base_10[2](writer, dt.calendar.week_of_year(dt.dt))
         elif c == FormatCode.z.value[0]:
             writer.write("+" if offset.is_east_utc else "-")
-            _write_int_base_10_padded[2](writer, offset.hours)
-            _write_int_base_10_padded[2](writer, offset.minutes)
+            _write_int_base_10[2](writer, offset.hours)
+            _write_int_base_10[2](writer, offset.minutes)
         elif c == FormatCode.`:z`.value[0]:
             if not s == ":z":
                 abort(t"Unsupported format code: '{s}'")
@@ -1791,39 +1741,37 @@ def _write_to[
         comptime if c == FormatCode.w.value[0]:
             writer.write(dt.calendar.day_of_week(dt.dt))
         elif c == FormatCode.d.value[0]:
-            _write_int_base_10_padded[2](writer, dt.dt.day)
+            _write_int_base_10[2](writer, dt.dt.day)
         elif c == FormatCode.e.value[0]:
-            writer.write(" " if dt.dt.day < 10 else "", dt.dt.day)
+            _write_int_base_10[2, " "](writer, dt.dt.day)
         elif c == FormatCode.m.value[0]:
-            _write_int_base_10_padded[2](writer, dt.dt.month)
+            _write_int_base_10[2](writer, dt.dt.month)
         elif c == FormatCode.y.value[0]:
-            _write_int_base_10_padded[2](writer, dt.dt.year % 100)
+            _write_int_base_10[2](writer, dt.dt.year % 100)
         elif c == FormatCode.Y.value[0]:
-            _write_int_base_10_padded[4](writer, dt.dt.year)
+            _write_int_base_10[4](writer, dt.dt.year)
         elif c == FormatCode.H.value[0]:
-            _write_int_base_10_padded[2](writer, dt.dt.hour)
+            _write_int_base_10[2](writer, dt.dt.hour)
         elif c == FormatCode.I.value[0]:
             var h = dt.dt.hour % 12
             h += UInt8(12 if h == 0 else 0)
-            _write_int_base_10_padded[2](writer, h)
+            _write_int_base_10[2](writer, h)
         elif c == FormatCode.M.value[0]:
-            _write_int_base_10_padded[2](writer, dt.dt.minute)
+            _write_int_base_10[2](writer, dt.dt.minute)
         elif c == FormatCode.S.value[0]:
-            _write_int_base_10_padded[2](writer, dt.dt.second)
+            _write_int_base_10[2](writer, dt.dt.second)
         elif c == FormatCode.f.value[0]:
-            _write_int_base_10_padded[6](
+            _write_int_base_10[6](
                 writer, dt.dt.m_second * 1000 + dt.dt.u_second
             )
         elif c == FormatCode.j.value[0]:
-            _write_int_base_10_padded[3](writer, dt.calendar.day_of_year(dt.dt))
+            _write_int_base_10[3](writer, dt.calendar.day_of_year(dt.dt))
         elif c == FormatCode.W.value[0]:
-            _write_int_base_10_padded[2](
-                writer, dt.calendar.week_of_year(dt.dt)
-            )
+            _write_int_base_10[2](writer, dt.calendar.week_of_year(dt.dt))
         elif c == FormatCode.z.value[0]:
             writer.write("+" if offset.is_east_utc else "-")
-            _write_int_base_10_padded[2](writer, offset.hours)
-            _write_int_base_10_padded[2](writer, offset.minutes)
+            _write_int_base_10[2](writer, offset.hours)
+            _write_int_base_10[2](writer, offset.minutes)
         elif c == FormatCode.`:z`.value[0]:
             comptime assert s == ":z", t"Unsupported format code: '{s}'"
             writer.write(offset)
