@@ -99,7 +99,7 @@ struct FormatCode(Equatable):
     """A literal '%' character."""
 
     var value: SIMD[DType.uint8, 2]
-    """The raw UTF-8 byte value."""
+    """The raw ASCII characters."""
 
     def __init__(out self, value: StringLiteral):
         """Construct a `FormatCode` from a string literal.
@@ -1615,6 +1615,8 @@ def _write_int_base_10_padded[
         if remainder >= {max_val}:
             return _write_int_base_10(writer, remainder)
 
+    var buf = SIMD[DType.uint8, next_power_of_two(width)]()
+
     var wrote_sign = decimal >= 0
     var started_writing_num = False
     comptime for i in reversed(range(width)):
@@ -1624,6 +1626,7 @@ def _write_int_base_10_padded[
             if not wrote_sign and remainder * 10 >= {n}:
                 writer.write("-")
                 wrote_sign = True
+                started_writing_num = True
                 continue
 
         var val = `0` | UInt8(remainder // {n})
@@ -1638,15 +1641,19 @@ def _write_int_base_10_padded[
                 started_writing_num = remainder >= {n}
             else:
                 res = val
-
-        writer.write_string(
-            {ptr = UnsafePointer(to=res).bitcast[Byte](), length = 1}
-        )
+        buf[buf.size - (i + 1)] = res
 
         comptime if UInt64(n) > UInt64(decimal.MAX):
             continue
         else:
             remainder %= {n}
+
+    writer.write_string(
+        {
+            ptr = UnsafePointer(to=buf).bitcast[Byte]() + buf.size - width,
+            length = width,
+        }
+    )
 
 
 def _write_int_base_10(mut writer: Some[Writer], decimal: Scalar):
@@ -1702,7 +1709,7 @@ def _write_to[
         elif c == FormatCode.d.value[0]:
             _write_int_base_10_padded[2](writer, dt.dt.day)
         elif c == FormatCode.e.value[0]:
-            writer.write(" " if dt.dt.day < 10 else "", dt.dt.day)
+            _write_int_base_10_padded[2, " "](writer, dt.dt.day)
         elif c == FormatCode.m.value[0]:
             _write_int_base_10_padded[2](writer, dt.dt.month)
         elif c == FormatCode.y.value[0]:
