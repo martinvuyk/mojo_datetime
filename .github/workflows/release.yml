@@ -34,4 +34,4 @@ jobs:
         with:
           file: ./build/mojo_datetime.mojopkg
           tag: ${{ steps.get_version.outputs.TAG }}
-          overwrite: true
+          overwrite: false
