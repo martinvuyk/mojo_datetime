@@ -8,8 +8,8 @@ Fully Mojo native, no external dependencies.
 
 ## Distribution channels
 
-- Github releases for both 0.26.2 and nightly versions
-- The latest 0.26.2 version should be in the `modular-community` channel
+- Github releases for both 0.26.3, 0.26.2 and nightly versions
+- The latest 0.26.3 version should be in the `modular-community` channel
 
 ## About the library
 
