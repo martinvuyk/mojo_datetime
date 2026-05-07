@@ -26,8 +26,28 @@ jobs:
       - name: Run upgrade
         run: pixi run upgrade
 
+      - name: Lint
+        run: pixi run lint_docs
+
+      - name: Test
+        run: pixi run tests
+
       - name: Commit and Push
+        id: auto-commit
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "Update lockfile to latest Mojo version"
           branch: main
+
+      - name: Get the version
+        id: get_version
+        run: |
+          TAG="$(pixi project version get)-compiler-$(pixi list | grep 'mojo-compiler' | awk '{print $2}')"
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+
+      - name: Upload package to release
+        uses: svenstaro/upload-release-action@v2
+        with:
+          file: ./build/mojo_datetime.mojopkg
+          tag: ${{ steps.get_version.outputs.TAG }}
+          overwrite: false

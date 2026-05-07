@@ -20,14 +20,14 @@ jobs:
           pixi-version: v0.67.2
           cache: true
 
+      - name: Run the package command
+        run: pixi run package
+
       - name: Get the version
         id: get_version
         run: |
           TAG="$(pixi project version get)-compiler-$(pixi list | grep 'mojo-compiler' | awk '{print $2}')"
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
-
-      - name: Run the package command
-        run: pixi run package
 
       - name: Upload package to release
         uses: svenstaro/upload-release-action@v2

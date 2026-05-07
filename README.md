@@ -1,5 +1,7 @@
 # mojo_datetime
 
+![Nightly Build Status](https://github.com/martinvuyk/mojo_datetime/actions/workflows/upgrade-and-release.yml/badge.svg?branch=main)
+
 A flexible Mojo datetime implementation.
 
 Fully Mojo native, no external dependencies.
