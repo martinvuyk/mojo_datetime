@@ -20,16 +20,27 @@ jobs:
           pixi-version: v0.67.2
           cache: true
 
-      - name: Run the package command
-        run: pixi run package
-
       - name: Get the version
         id: get_version
         run: |
           TAG="$(pixi project version get)-compiler-$(pixi list | grep 'mojo-compiler' | awk '{print $2}')"
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
 
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git ls-remote --tags origin refs/tags/${{ steps.get_version.outputs.TAG }} | grep -q "${{ steps.get_version.outputs.TAG }}"; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run the package command
+        if: steps.check_tag.outputs.exists != 'true'
+        run: pixi run package
+
       - name: Upload package to release
+        if: steps.check_tag.outputs.exists != 'true'
         uses: svenstaro/upload-release-action@v2
         with:
           file: ./build/mojo_datetime.mojopkg

@@ -32,20 +32,31 @@ jobs:
       - name: Test
         run: pixi run tests
 
-      - name: Commit and Push
-        id: auto-commit
-        uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          commit_message: "Update lockfile to latest Mojo version"
-          branch: main
-
       - name: Get the version
         id: get_version
         run: |
           TAG="$(pixi project version get)-compiler-$(pixi list | grep 'mojo-compiler' | awk '{print $2}')"
           echo "TAG=$TAG" >> $GITHUB_OUTPUT
 
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git ls-remote --tags origin refs/tags/${{ steps.get_version.outputs.TAG }} | grep -q "${{ steps.get_version.outputs.TAG }}"; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and Push
+        if: steps.check_tag.outputs.exists != 'true'
+        id: auto-commit
+        uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "Update lockfile to latest Mojo version"
+          branch: main
+
       - name: Upload package to release
+        if: steps.check_tag.outputs.exists != 'true'
         uses: svenstaro/upload-release-action@v2
         with:
           file: ./build/mojo_datetime.mojopkg
