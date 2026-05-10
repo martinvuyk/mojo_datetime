@@ -20,7 +20,10 @@ savings time transition rules are provided on a best-effort basis.
 - `DateTime`
     - A structure aware of TimeZone, Calendar, and leap days and seconds.
 - `TimeZone`
-    - By default UTC, highly customizable.
+    - By default UTC, highly customizable. It can be implicitly built from an
+        [`IANA TimeZone identifier`](
+        https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) as long
+        as it is in the default zone info dict.
 - `DayOfWeek`
     - A calendar-aware day of the week struct, it provides a safe abstraction
         over the different calendar's interpretation of what a day of the week's

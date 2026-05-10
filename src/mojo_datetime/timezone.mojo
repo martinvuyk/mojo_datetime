@@ -29,6 +29,12 @@ struct TimeZone[zone_info_type: UTCZoneInfo = ZoneInfo](
 
     Parameters:
         zone_info_type: The type that the zone information is stored in.
+
+    Notes:
+        It can be implicitly built from a [`IANA TimeZone identifier`](
+        https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) as long
+        as it is in the default zone info dict. Remember they are provided on a
+        best-effort basis.
     """
 
     var tz_str: String
@@ -69,7 +75,9 @@ struct TimeZone[zone_info_type: UTCZoneInfo = ZoneInfo](
             When a time zone string wasn't found in the default zone info dict.
         """
 
-        var res = global_constant[gregorian_zoneinfo]().get(tz_str)
+        # FIXME(#6513): for some reason support for this was blocked
+        # var res = global_constant[gregorian_zoneinfo]().get(tz_str)
+        var res = materialize[gregorian_zoneinfo]().get(tz_str)
         if not res:
             raise Error(t"Time zone string not found: '{tz_str}'")
         self.tz_str = tz_str

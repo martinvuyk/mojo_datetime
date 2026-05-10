@@ -2141,7 +2141,7 @@ def _parse[
             var maybe_tz_str = (
                 _slice(read_from, end=idx) if idx != -1 else read_from
             )
-            # FIXME: for some reason support for this was blocked
+            # FIXME(#6513): for some reason support for this was blocked
             # var maybe_zone_info = global_constant[zone_info_dict]().get(
             #     String(maybe_tz_str)  # FIXME: we don't need to allocate here
             # )
@@ -2341,7 +2341,7 @@ def _parse[
             var maybe_tz_str = (
                 _slice(read_from, end=idx) if idx != -1 else read_from
             )
-            # FIXME: for some reason support for this was blocked
+            # FIXME(#6513): for some reason support for this was blocked
             # var maybe_zone_info = global_constant[zone_info_dict]().get(
             #     String(maybe_tz_str)  # FIXME: we don't need to allocate here
             # )
