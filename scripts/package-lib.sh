@@ -19,7 +19,7 @@ REPO_ROOT=$(realpath "${SCRIPT_DIR}/..")
 BUILD_DIR="${REPO_ROOT}"/build
 mkdir -p "${BUILD_DIR}"
 
-LIB_PATH="${REPO_ROOT}/src/mojo_datetime"
+LIB_PATH="${REPO_ROOT}/mojo_datetime"
 
 echo "Packaging up the Library."
 PACKAGE_NAME="mojo_datetime.mojopkg"

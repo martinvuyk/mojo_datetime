@@ -12,11 +12,11 @@ homepage = "https://github.com/martinvuyk/mojo_datetime"
 repository = "https://github.com/martinvuyk/mojo_datetime"
 
 [tasks]
-format = { cmd = "mojo format ./src" }
+format = { cmd = "mojo format ./benchmarks ./mojo_datetime ./tests" }
 package = { cmd = "./scripts/package-lib.sh", depends-on = ["format"] }
 tests = { cmd = "./scripts/run_tests.sh", depends-on = ["package"]}
 bench = { cmd = "./scripts/run_benchmarks.sh", depends-on = ["package"]}
-lint_docs = { cmd = "mojo doc --Werror --diagnose-missing-doc-strings -o /dev/null ./src/mojo_datetime" }
+lint_docs = { cmd = "mojo doc --Werror --diagnose-missing-doc-strings -o /dev/null ./mojo_datetime" }
 upgrade = { cmd = "pixi update && pixi upgrade && pixi install"}
 
 [dependencies]
@@ -30,7 +30,7 @@ version = "0.1.1"
 backend = { name = "pixi-build-mojo", version = "0.1.*" }
 
 [package.build.config.pkg]
-path = "src/mojo_datetime"
+path = "mojo_datetime"
 
 [package.host-dependencies]
 mojo-compiler = ">=1.0.0b1.dev2026043006,<2"

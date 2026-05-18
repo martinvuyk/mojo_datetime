@@ -18,7 +18,7 @@ SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 REPO_ROOT="${SCRIPT_DIR}"/..
 BUILD_DIR="${REPO_ROOT}"/build
 
-TEST_PATH="${REPO_ROOT}/src/tests"
+TEST_PATH="${REPO_ROOT}/tests"
 TEST_PATH=$( realpath ${TEST_PATH} )
 
 cp ${BUILD_DIR}/mojo_datetime.mojopkg ${TEST_PATH}
