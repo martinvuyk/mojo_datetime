@@ -21,7 +21,7 @@ BUILD_DIR="${REPO_ROOT}"/build
 TEST_PATH="${REPO_ROOT}/tests"
 TEST_PATH=$( realpath ${TEST_PATH} )
 
-cp ${BUILD_DIR}/mojo_datetime.mojopkg ${TEST_PATH}
+cp ${BUILD_DIR}/mojo_datetime.mojoc ${TEST_PATH}
 
 if [[ $# -gt 0 ]]; then
   # If an argument is provided, use it as the specific test file or directory
@@ -31,6 +31,5 @@ TEST_PATH=$( realpath ${TEST_PATH} )
 
 echo "Running the tests"
 for f in $( find $TEST_PATH -name '*.mojo' ); do
-  mojo run -D ASSERT=all $f &
+  mojo run -D ASSERT=all $f
 done
-wait

@@ -17,7 +17,7 @@ from std.collections.optional import Optional
 
 from .calendar import (
     Calendar,
-    UTCCalendar,
+    UTCFastCal,
     CalendarHashes,
     PythonCalendar,
     _NaiveDateTime,
@@ -1016,40 +1016,32 @@ struct DateTime[
         return self._compare["<="](other)
 
     @staticmethod
-    def from_unix_epoch[
-        add_leapsecs: Bool = False
-    ](time_delta: TimeDelta) -> Self:
+    def from_unix_epoch(time_delta: TimeDelta) -> Self:
         """Construct a `DateTime` from the time delta since the Unix Epoch
-        1970-01-01. Adding the cumulative leap seconds since 1972
-        to the given date.
-
-        Parameters:
-            add_leapsecs: Whether to add the leap seconds and leap days
-                since the start of the calendar's epoch.
+        1970-01-01. Adds the cumulative leap seconds since 1972 to the given
+        date if `Self.calendar` takes them into account.
 
         Args:
             time_delta: Nanoseconds.
 
         Returns:
-            Self.
+            The result.
         """
+        var dt = DateTime[TZ_UTC, UTCFastCal]().add(time_delta)
+        return dt.to_calendar[Self.calendar]().to_timezone[Self.timezone]()
 
-        dt = DateTime[Self.timezone, UTCCalendar]().add(time_delta)
-        comptime if add_leapsecs:
-            dt = dt.add(seconds=UInt64(dt.leapsecs_since_epoch()))
-        return dt.to_calendar[Self.calendar]()
+    @always_inline
+    @staticmethod
+    def now() -> Self:
+        """Construct a datetime from `time.now()`.
 
-    # @always_inline
-    # @staticmethod
-    # def now() -> Self:
-    #     """Construct a datetime from `time.now()`.
-
-    #     Returns:
-    #         Self.
-    #     """
-    #     return Self.from_unix_epoch(
-    #         TimeDelta[SITimeUnit.NANOSECONDS](time.monotonic())
-    #     )
+        Returns:
+            The result.
+        """
+        # FIXME(https://github.com/modular/modular/issues/6606)
+        return Self.from_unix_epoch(
+            TimeDelta[SITimeUnit.NANOSECONDS](time.monotonic())
+        )
 
     @always_inline
     def timestamp(self) -> Float64:

@@ -21,7 +21,7 @@ from std.testing import (
     TestSuite,
 )
 
-from std.time import time
+from std.benchmark import keep
 
 from mojo_datetime.datetime import DateTime
 from mojo_datetime.timezone import TimeZone, TZ_UTC
@@ -31,6 +31,7 @@ from mojo_datetime.calendar import (
     PythonCalendar,
     UTCCalendar,
     Gregorian,
+    UTCFastCal,
 )
 
 
@@ -262,11 +263,51 @@ def test_bitwise() raises:
     assert_true(~(ref1 ^ ~ref1) == 0)
 
 
-# def test_time() raises:
-#     start = DateTime.now()
-#     time.sleep(1e-9)  # nanosecond resolution
-#     end = DateTime.now()
-#     assert_not_equal(start.n_second, end.n_second)
+def test_datetime_now() raises:
+    start = DateTime.now()
+    for i in range(100):  # nanosecond resolution
+        keep(i)
+    end = DateTime.now()
+    assert_not_equal(start.n_second, end.n_second)
+
+
+def test_add_seconds_large() raises:
+    var delta = TimeDelta(seconds=1779159763)
+    var dt_leaps = DateTime(DateTime[].calendar._unix_epoch).add(delta)
+    assert_equal(dt_leaps, DateTime(2026, 5, 19, 3, 2, 16))
+
+
+def test_unix_epoch() raises:
+    var delta = TimeDelta(seconds=1779159763)
+    var dt_leaps = DateTime.from_unix_epoch(delta)
+    assert_equal(dt_leaps, DateTime(2026, 5, 19, 3, 2, 16))
+
+    var dt_no_leaps = DateTime[_, UTCFastCal].from_unix_epoch(delta)
+    assert_equal(dt_no_leaps, DateTime[_, UTCFastCal](2026, 5, 19, 3, 2, 43))
+
+    assert_equal(dt_no_leaps.to_calendar[dt_leaps.calendar](), dt_leaps)
+    assert_equal(dt_leaps.to_calendar[dt_no_leaps.calendar](), dt_no_leaps)
+
+
+def test_midnight_leap_second_gap() raises:
+    var dt_before = DateTime[tz_0_, unixcal](
+        1972, 6, 29, hour=23, minute=59, second=59
+    )
+    var dt_midnight = DateTime[tz_0_, unixcal](
+        1972, 6, 30, hour=0, minute=0, second=0
+    )
+    assert_equal(dt_midnight - dt_before, TimeDelta(seconds=1))
+
+    var dt_leap_start = DateTime[tz_0_, unixcal](
+        1972, 6, 30, hour=23, minute=59, second=59
+    )
+    var dt_after_leap = DateTime[tz_0_, unixcal](
+        1972, 7, 1, hour=0, minute=0, second=0
+    )
+    assert_equal(dt_after_leap - dt_leap_start, TimeDelta(seconds=2))
+
+    assert_equal(dt_before.add(seconds=1), dt_midnight)
+    assert_equal(dt_leap_start.add(seconds=2), dt_after_leap)
 
 
 def test_hash() raises:
