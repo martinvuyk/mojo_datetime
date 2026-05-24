@@ -21,7 +21,7 @@ BUILD_DIR="${REPO_ROOT}"/build
 BENCH_PATH="${REPO_ROOT}/benchmarks"
 BENCH_PATH=$( realpath ${BENCH_PATH} )
 
-cp ${BUILD_DIR}/mojo_datetime.mojopkg ${BENCH_PATH}
+cp ${BUILD_DIR}/mojo_datetime.mojoc ${BENCH_PATH}
 
 if [[ $# -gt 0 ]]; then
   BENCH_PATH=$1
