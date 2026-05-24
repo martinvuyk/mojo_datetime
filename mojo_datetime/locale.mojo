@@ -531,7 +531,7 @@ struct LibCLocale(DTLocale):
         var c_str = external_call[
             "nl_langinfo_l", UnsafePointer[c_char, ImmutAnyOrigin]
         ](item, self._loc)
-        return StringSlice(unsafe_from_utf8={unsafe_from_ptr = c_str})
+        return StringSlice(unsafe_from_utf8_ptr=c_str)
 
     def day_of_week_short(self, mut writer: Some[Writer], dt: _TzNaiveDateTime):
         """The day of the week as locale's abbreviated name.
