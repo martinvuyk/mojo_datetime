@@ -439,5 +439,34 @@ def test_iso_calendar() raises:
     assert_equal(iso.week_of_year({2027, 1, 4}), 1)
 
 
+def test_days_since_epoch() raises:
+    var days = PythonCalendar.days_since_epoch({9999, 12, 31, 23, 59, 59})
+    assert_equal(days, 3652058)
+
+
+def test_seconds_since_epoch() raises:
+    var dt = _NaiveDateTime(9999, 12, 31, 23, 59, 59)
+
+    var leapsecs = UInt64(PythonCalendar.leapsecs_since_epoch(dt))
+
+    var python_seconds = UInt64(315537897599)
+    var seconds = PythonCalendar.to_delta_since_epoch[SITimeUnit.SECONDS](dt)
+    assert_equal(seconds, python_seconds + leapsecs)
+
+    var unix_seconds = UInt64(253402300799)
+
+    is_positive, seconds = PythonCalendar.to_delta_since_unix_epoch[
+        SITimeUnit.SECONDS
+    ](dt)
+    assert_true(is_positive)
+    assert_equal(seconds, unix_seconds + leapsecs)
+
+    seconds = UTCCalendar.to_delta_since_epoch[SITimeUnit.SECONDS](dt)
+    assert_equal(seconds, unix_seconds + leapsecs)
+
+    seconds = UTCFastCal.to_delta_since_epoch[SITimeUnit.SECONDS](dt)
+    assert_equal(seconds, unix_seconds)
+
+
 def main() raises:
     TestSuite.discover_tests[__functions_in_module()]().run()

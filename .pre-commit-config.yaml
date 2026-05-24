@@ -12,6 +12,6 @@ repos:
         name: lint_docstrings
         entry: pixi run lint_docs
         language: system
-        files: '^src/mojo_datetime/.*\.mojo$'
+        files: '^mojo_datetime/.*\.mojo$'
         stages: [pre-commit]
         pass_filenames: false

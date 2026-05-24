@@ -6,7 +6,7 @@ on:
 jobs:
   test-linux:
     name: Run tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -30,7 +30,7 @@ jobs:
       - name: Set up Pixi
         uses: prefix-dev/setup-pixi@main
         with:
-          pixi-version: latest
+          pixi-version: v0.67.2
           cache: true
 
       - name: Run the test suite

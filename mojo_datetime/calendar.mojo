@@ -14,7 +14,7 @@
 
 from std.os import abort
 from std.utils import Variant
-from std.sys.intrinsics import likely, unlikely
+from std.sys.intrinsics import likely, unlikely, _type_is_eq
 
 
 comptime PythonCalendar = Gregorian[]
@@ -393,6 +393,8 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
     """Maximum typical value of days in a year (no leaps)."""
     comptime max_possible_days_in_year: UInt16 = 366
     """Maximum possible value of days in a year (with leaps)."""
+    comptime max_typical_days_in_month: UInt8 = 30
+    """Maximum typical value of days in a month (with leaps)."""
     comptime max_possible_days_in_month: UInt8 = 31
     """Maximum possible value of days in a month (with leaps)."""
     comptime max_possible_weeks_in_year: UInt8 = 52
@@ -452,7 +454,11 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
     comptime _leapsec_size: Int
     comptime _hashed_leapsec_array: InlineArray[UInt32, Self._leapsec_size]
     comptime _include_leapsecs: Bool
-    comptime _unix_calendar: Calendar
+    """Whether to include leap seconds."""
+    comptime _unix_epoch: _NaiveDateTime = _NaiveDateTime(
+        1970, 1, 1, 0, 0, 0, 0, 0, 0
+    )
+    """The unix epoch (1970-01-01) expressed in the native calendar."""
 
     # fmt: off
     comptime _monthdays: SIMD[DType.uint8, 16] = [
@@ -531,7 +537,7 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
         # the gregorian calendar started, we can just use that here. Using
         # arbitrary epochs would make this code not work (hence we don't use
         # self.days_since_epoch())
-        var gregorian_days_since_epoch = Self._days_since_epoch[1, 1, 1](dt) + 1
+        var gregorian_days_since_epoch = Self._days_since_epoch[1, 1, 1](dt)
         return (gregorian_days_since_epoch % 7).cast[DType.uint8]()
 
     @always_inline
@@ -633,15 +639,21 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
         if unlikely(dt.year < 1972):
             return 0
         comptime size = UInt32(Self._leapsec_size)
-        var h = Leapsec(dt).hash()
-        comptime last = Self._hashed_leapsec_array[size - 1]
-        if h > last:
+        var h = Self.hash[CalendarHashes.UINT64](dt)
+        comptime last = Leapsec.from_hash(Self._hashed_leapsec_array[size - 1])
+        comptime last_h = Self.hash[CalendarHashes.UINT64](
+            {last.year, last.month, last.day, 23, 60}
+        )
+        if h > last_h:
             return size
-        amnt = UInt32(0)
 
+        var amnt = UInt32(0)
         comptime for i in range(size):
-            comptime leapsec = Self._hashed_leapsec_array[i]
-            if h < leapsec:
+            comptime leapsec = Leapsec.from_hash(Self._hashed_leapsec_array[i])
+            comptime leapsec_h = Self.hash[CalendarHashes.UINT64](
+                {leapsec.year, leapsec.month, leapsec.day, 23, 60}
+            )
+            if h <= leapsec_h:
                 return amnt
             amnt += 1
         return amnt
@@ -684,7 +696,9 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
     def _days_since_epoch[
         min_year: UInt16, min_month: UInt8, min_day: UInt8
     ](dt: _NaiveDateTime) -> UInt32:
-        var y_d1 = UInt32((dt.year - min_year) * Self.max_typical_days_in_year)
+        var y_d1 = UInt32(dt.year - min_year) * UInt32(
+            Self.max_typical_days_in_year
+        )
         var leapdays = Self._leapdays_since_epoch[min_year](
             {dt.year, min_month, min_day}
         )
@@ -747,7 +761,7 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
         var seconds = (
             minutes * Scalar[dtype](Self.max_typical_second + 1)
             + Scalar[dtype](dt.second - Self.min_second)
-        ) - Scalar[dtype](leaps)
+        ) + Scalar[dtype](leaps)
         comptime if unit == SITimeUnit.SECONDS:
             return seconds
 
@@ -789,8 +803,8 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
             - The amount.
         """
         var lhs = Self.to_delta_since_epoch[unit, dtype](dt)
-        var rhs = Self._unix_calendar().to_delta_since_epoch[unit, dtype](dt)
-        if dt.year >= 1970:
+        var rhs = Self.to_delta_since_epoch[unit, dtype](Self._unix_epoch)
+        if dt >= Self._unix_epoch:
             return True, lhs - rhs
         else:
             return False, rhs - lhs
@@ -914,7 +928,7 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
         """
         return year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
 
-    def __eq__(self, other: Calendar) -> Bool:
+    def __eq__(self, other: Some[Calendar]) -> Bool:
         """Compare self with other.
 
         Args:
@@ -925,7 +939,11 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
         """
         comptime Other = type_of(other)
         comptime res = (
-            Self.max_year == Other.max_year
+            _type_is_eq[Self, Other]()
+            # and Self._hashed_leapsec_array == Other._hashed_leapsec_array
+            and Self._leapsec_size == Other._leapsec_size
+            and Self._include_leapsecs == Other._include_leapsecs
+            and Self.max_year == Other.max_year
             and Self.max_typical_days_in_year == Other.max_typical_days_in_year
             and Self.max_possible_days_in_year
             == Other.max_possible_days_in_year
@@ -949,7 +967,7 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
         )
         return res
 
-    def __ne__(self, other: Calendar) -> Bool:
+    def __ne__(self, other: Some[Calendar]) -> Bool:
         """Compare self with other.
 
         Args:
@@ -987,9 +1005,8 @@ struct Gregorian[
     comptime _leapsec_size = Self.hashed_leapsec_array_.size
     comptime _hashed_leapsec_array = Self.hashed_leapsec_array_
     comptime _include_leapsecs = Self.include_leapsecs_
-    comptime _unix_calendar: Calendar = Gregorian[
-        Self.include_leapsecs_, 1970, Self.hashed_leapsec_array_
-    ]
+    comptime max_possible_second: UInt8 = 60 if Self.include_leapsecs_ else 59
+    """Maximum possible value of seconds in a minute (with leaps)."""
     comptime min_year: UInt16 = Self.min_year_
     """Default minimum year in the calendar."""
 
@@ -1044,9 +1061,6 @@ struct ISOCalendar[
     comptime _leapsec_size = Self.hashed_leapsec_array_.size
     comptime _hashed_leapsec_array = Self.hashed_leapsec_array_
     comptime _include_leapsecs = Self.include_leapsecs_
-    comptime _unix_calendar: Calendar = Gregorian[
-        Self.include_leapsecs_, 1970, Self.hashed_leapsec_array_
-    ]
     comptime _min_year: UInt16 = Self.min_year_
 
     comptime _greg = Gregorian[

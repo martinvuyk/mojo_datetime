@@ -6,10 +6,49 @@ A flexible Mojo datetime implementation.
 
 Fully Mojo native, no external dependencies.
 
-## Distribution channels
+## Versioning
 
-- Github releases for both 0.26.3, 0.26.2 and nightly versions
-- The latest 0.26.3 version should be in the `modular-community` channel
+While Mojo stabilizes, this project will be released for amost every compiler
+version (it might skip some nightlies) with the schema
+`<project_version>-compiler-<compiler_version>`.
+
+### Distribution channels
+
+- Github releases for nightly versions, 1.0.0b1, and 0.26.2
+- The latest 1.0.0b1 version should be in the `modular-community` channel
+
+### Pixi Installation
+
+The project can still be built from source even if a nightly version is skipped
+by using a previous version's release since the code isn't changing much between
+minor nightly relases. If one version isn't building due to source
+incompatibility, just try a lower nightly version tag.
+
+Add `mojo_datetime` to your project's pixi.toml:
+
+```toml
+[workspace]
+...
+preview = ["pixi-build"]
+
+[dependencies]
+mojo_datetime = { git = "https://github.com/martinvuyk/mojo_datetime.git", tag = "0.1.1-compiler-1.0.0b1" }
+```
+
+Then run:
+
+```bash
+pixi install
+```
+
+Nightly releases should be available automatically every midnight (with a
+corresponding compiler version tag). But it can also be built directly from the
+main branch.
+
+```toml
+[dependencies]
+mojo_datetime = { git = "https://github.com/martinvuyk/mojo_datetime.git", branch = "main" }
+```
 
 ## About the library
 
@@ -20,7 +59,10 @@ savings time transition rules are provided on a best-effort basis.
 - `DateTime`
     - A structure aware of TimeZone, Calendar, and leap days and seconds.
 - `TimeZone`
-    - By default UTC, highly customizable.
+    - By default UTC, highly customizable. It can be implicitly built from an
+        [`IANA TimeZone identifier`](
+        https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) as long
+        as it is in the default zone info dict.
 - `DayOfWeek`
     - A calendar-aware day of the week struct, it provides a safe abstraction
         over the different calendar's interpretation of what a day of the week's

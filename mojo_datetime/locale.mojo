@@ -170,7 +170,11 @@ struct _DTSpecIterator[mut: Bool, //, origin: Origin[mut=mut]](
         var idx = self._slice.find("%")
         if idx == -1 and length > 0:
             var value = self._slice
-            self._slice = {ptr = self._slice.unsafe_ptr() + length, length = 0}
+            self._slice = {
+                unsafe_from_utf8 = Span(
+                    ptr=self._slice.unsafe_ptr() + length, length=0
+                )
+            }
             return (False, value)
         elif idx == -1 or length - idx <= 1:
             raise StopIteration()
@@ -180,22 +184,25 @@ struct _DTSpecIterator[mut: Bool, //, origin: Origin[mut=mut]](
             var end = 2 + Int(self._slice.unsafe_ptr()[1] in extension_chars)
             var value = self._slice[byte=1:end]
             self._slice = {
-                ptr = self._slice.unsafe_ptr() + end,
-                length = length - end,
+                unsafe_from_utf8 = Span(
+                    ptr=self._slice.unsafe_ptr() + end, length=length - end
+                )
             }
             return True, value
         elif idx == 0:
             var value = self._slice[byte=1:2]
             self._slice = {
-                ptr = self._slice.unsafe_ptr() + 2,
-                length = length - 2,
+                unsafe_from_utf8 = Span(
+                    ptr=self._slice.unsafe_ptr() + 2, length=length - 2
+                )
             }
             return True, value
         else:
             var value = self._slice[byte=:idx]
             self._slice = {
-                ptr = self._slice.unsafe_ptr() + idx,
-                length = length - idx,
+                unsafe_from_utf8 = Span(
+                    ptr=self._slice.unsafe_ptr() + idx, length=length - idx
+                )
             }
             return False, value
 
@@ -524,7 +531,7 @@ struct LibCLocale(DTLocale):
         var c_str = external_call[
             "nl_langinfo_l", UnsafePointer[c_char, ImmutAnyOrigin]
         ](item, self._loc)
-        return StringSlice(unsafe_from_utf8_ptr=c_str)
+        return StringSlice(unsafe_from_utf8={unsafe_from_ptr = c_str})
 
     def day_of_week_short(self, mut writer: Some[Writer], dt: _TzNaiveDateTime):
         """The day of the week as locale's abbreviated name.
@@ -1634,7 +1641,12 @@ def _write_int_base_10[
             i += 1
 
     writer.write_string(
-        {ptr = UnsafePointer(to=buf).bitcast[Byte]() + buf.size - i, length = i}
+        {
+            unsafe_from_utf8 = Span(
+                ptr=UnsafePointer(to=buf).bitcast[Byte]() + buf.size - i,
+                length=i,
+            )
+        }
     )
 
 
@@ -1845,7 +1857,11 @@ def _write_to_iso[
     def to_str(
         ref vec: SIMD[DType.uint8, _], length: Int = vec.size
     ) -> StringSlice[origin_of(vec)]:
-        return {ptr = UnsafePointer(to=vec).bitcast[Byte](), length = length}
+        return {
+            unsafe_from_utf8 = Span(
+                ptr=UnsafePointer(to=vec).bitcast[Byte](), length=length
+            )
+        }
 
     var yyyy = `0` | UInt8(dt.dt.year // 1000)
     var yyy_base = dt.dt.year % 1000
@@ -1956,8 +1972,10 @@ def _slice(
     read_from: StringSlice[mut=False, _], *, start: Int
 ) -> type_of(read_from):
     return {
-        ptr = read_from.unsafe_ptr() + start,
-        length = read_from.byte_length() - start,
+        unsafe_from_utf8 = Span(
+            ptr=read_from.unsafe_ptr() + start,
+            length=read_from.byte_length() - start,
+        )
     }
 
 
@@ -1965,7 +1983,7 @@ def _slice(
 def _slice(
     read_from: StringSlice[mut=False, _], *, end: Int
 ) -> type_of(read_from):
-    return {ptr = read_from.unsafe_ptr(), length = end}
+    return {unsafe_from_utf8 = Span(ptr=read_from.unsafe_ptr(), length=end)}
 
 
 def _parse_pure_int[
@@ -2141,7 +2159,7 @@ def _parse[
             var maybe_tz_str = (
                 _slice(read_from, end=idx) if idx != -1 else read_from
             )
-            # FIXME: for some reason support for this was blocked
+            # FIXME(#6513): for some reason support for this was blocked
             # var maybe_zone_info = global_constant[zone_info_dict]().get(
             #     String(maybe_tz_str)  # FIXME: we don't need to allocate here
             # )
@@ -2341,7 +2359,7 @@ def _parse[
             var maybe_tz_str = (
                 _slice(read_from, end=idx) if idx != -1 else read_from
             )
-            # FIXME: for some reason support for this was blocked
+            # FIXME(#6513): for some reason support for this was blocked
             # var maybe_zone_info = global_constant[zone_info_dict]().get(
             #     String(maybe_tz_str)  # FIXME: we don't need to allocate here
             # )

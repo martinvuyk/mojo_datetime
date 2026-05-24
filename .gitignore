@@ -4,6 +4,7 @@
 *.egg-info
 # packages
 *.mojopkg
+*.mojoc
 
 build/
 kgen.trace.*
