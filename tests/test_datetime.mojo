@@ -82,7 +82,9 @@ def assert_datetime_equal(dt: DateTime, py_dt: PythonObject) raises:
     )
 
 
-def assert_datetime_timestamp_close(dt: DateTime, py_dt: PythonObject, tolerance_seconds: Float64 = 1.0) raises:
+def assert_datetime_timestamp_close(
+    dt: DateTime, py_dt: PythonObject, tolerance_seconds: Float64 = 1.0
+) raises:
     var dt_timestamp = dt.timestamp()
     var py_timestamp = Float64(py=py_dt.timestamp())
     var diff = dt_timestamp - py_timestamp
@@ -91,7 +93,8 @@ def assert_datetime_timestamp_close(dt: DateTime, py_dt: PythonObject, tolerance
     assert_true(
         diff <= tolerance_seconds,
         String(
-            t"dt: {dt} and py_dt: {py_dt} differ by {diff} seconds, which exceeds the allowed tolerance of {tolerance_seconds} seconds."
+            t"dt: {dt} and py_dt: {py_dt} differ by {diff} seconds, which"
+            t" exceeds the allowed tolerance of {tolerance_seconds} seconds."
         ),
     )
 
