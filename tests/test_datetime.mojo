@@ -40,72 +40,6 @@ comptime tz_1 = TimeZone("Etc/UTC+1")
 comptime tz1_ = TimeZone("Etc/UTC-1")
 
 
-def py_dt_datetime() raises -> PythonObject:
-    var _datetime = Python.import_module("datetime")
-    return _datetime.datetime
-
-
-def assert_datetime_equal(dt: DateTime, py_dt: PythonObject) raises:
-    var message = String(
-        "dt: {} is not equal to py_dt: {}. The mojo_datetime {} {} does not"
-        " equal the Python datetime {} {}"
-    )
-    assert_equal(
-        dt.year,
-        UInt16(py=py_dt.year),
-        message.format(dt, py_dt, "year", dt.year, "year", py_dt.year),
-    )
-    assert_equal(
-        dt.month,
-        UInt8(py=py_dt.month),
-        message.format(dt, py_dt, "month", dt.month, "month", py_dt.month),
-    )
-    assert_equal(
-        dt.day,
-        UInt8(py=py_dt.day),
-        message.format(dt, py_dt, "day", dt.day, "day", py_dt.day),
-    )
-    assert_equal(
-        dt.hour,
-        UInt8(py=py_dt.hour),
-        message.format(dt, py_dt, "hour", dt.hour, "hour", py_dt.hour),
-    )
-    assert_equal(
-        dt.minute,
-        UInt8(py=py_dt.minute),
-        message.format(dt, py_dt, "minute", dt.minute, "minute", py_dt.minute),
-    )
-    assert_equal(
-        dt.second,
-        UInt8(py=py_dt.second),
-        message.format(dt, py_dt, "second", dt.second, "second", py_dt.second),
-    )
-
-
-def assert_datetime_timestamp_close(
-    dt: DateTime, py_dt: PythonObject, tolerance_seconds: Float64 = 1.0
-) raises:
-    var dt_timestamp = dt.timestamp()
-    var py_timestamp = Float64(py=py_dt.timestamp())
-    var diff = dt_timestamp - py_timestamp
-    if diff < 0:
-        diff = -diff
-    assert_true(
-        diff <= tolerance_seconds,
-        String(
-            t"dt: {dt} and py_dt: {py_dt} differ by {diff} seconds, which"
-            t" exceeds the allowed tolerance of {tolerance_seconds} seconds."
-        ),
-    )
-
-
-def test_utc_now() raises:
-    var dt = DateTime[TZ_UTC, PythonCalendar].now()
-    var py_dt = py_dt_datetime().utcnow()
-    # assert_datetime_timestamp_close(dt=dt, py_dt=py_dt)
-    # assert_datetime_equal(dt=dt, py_dt=py_dt)
-
-
 def test_add() raises:
     # using python and unix calendar should have no difference in results
     # test february leapyear
@@ -327,6 +261,14 @@ def test_bitwise() raises:
     assert_true(~(ref1 ^ ~ref1) == 0)
 
 
+def test_hash() raises:
+    ref1 = DateTime[tz_0_, pycal](1970, 1, 1)
+    assert_equal(ref1, DateTime[tz_0_, pycal].from_hash(ref1.hash()))
+    ref2 = DateTime[tz_0_, unixcal](1970, 1, 1)
+    assert_equal(ref2, DateTime[tz_0_, unixcal].from_hash(ref2.hash()))
+    assert_equal(ref1.hash(), ref2.hash())
+
+
 def test_add_seconds_large() raises:
     var delta = TimeDelta(seconds=1779159763)
     var dt_leaps = DateTime(DateTime[].calendar._unix_epoch).add(delta)
@@ -335,10 +277,10 @@ def test_add_seconds_large() raises:
 
 def test_unix_epoch() raises:
     var delta = TimeDelta(seconds=1779159763)
-    var dt_leaps = DateTime.from_unix_epoch(delta)
+    var dt_leaps = DateTime.from_unix_epoch(delta).to_calendar[PythonCalendar]()
     assert_equal(dt_leaps, DateTime(2026, 5, 19, 3, 2, 16))
 
-    var dt_no_leaps = DateTime[_, UTCFastCal].from_unix_epoch(delta)
+    var dt_no_leaps = DateTime.from_unix_epoch(delta)
     assert_equal(dt_no_leaps, DateTime[_, UTCFastCal](2026, 5, 19, 3, 2, 43))
 
     assert_equal(dt_no_leaps.to_calendar[dt_leaps.calendar](), dt_leaps)
@@ -347,38 +289,28 @@ def test_unix_epoch() raises:
 
 def test_unix_epoch_second_resolution() raises:
     var delta = TimeDelta[SITimeUnit.SECONDS](1779725919)
-    var dt_leaps = DateTime.from_unix_epoch(delta)
-    assert_equal(dt_leaps, DateTime(2026, 5, 25, 16, 18, 39))
-
-    var dt_no_leaps = DateTime[_, UTCFastCal].from_unix_epoch(delta)
-    assert_equal(dt_no_leaps, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39))
+    var dt = DateTime.from_unix_epoch(delta)
+    assert_equal(dt, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39))
 
 
 def test_unix_epoch_millisecond_resolution() raises:
-    var delta = TimeDelta[SITimeUnit.MILLISECONDS](1779725919000)
-    var dt_leaps = DateTime.from_unix_epoch(delta)
-    assert_equal(dt_leaps, DateTime(2026, 5, 25, 16, 18, 39))
-
-    var dt_no_leaps = DateTime[_, UTCFastCal].from_unix_epoch(delta)
-    assert_equal(dt_no_leaps, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39))
+    var delta = TimeDelta[SITimeUnit.MILLISECONDS](1779725919111)
+    var dt = DateTime.from_unix_epoch(delta)
+    assert_equal(dt, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39, 111))
 
 
 def test_unix_epoch_microsecond_resolution() raises:
-    var delta = TimeDelta[SITimeUnit.MICROSECONDS](1779725919000000)
-    var dt_leaps = DateTime.from_unix_epoch(delta)
-    assert_equal(dt_leaps, DateTime(2026, 5, 25, 16, 18, 39))
-
-    var dt_no_leaps = DateTime[_, UTCFastCal].from_unix_epoch(delta)
-    assert_equal(dt_no_leaps, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39))
+    var delta = TimeDelta[SITimeUnit.MICROSECONDS](1779725919111222)
+    var dt = DateTime.from_unix_epoch(delta)
+    assert_equal(dt, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39, 111, 222))
 
 
 def test_unix_epoch_nanosecond_resolution() raises:
-    var delta = TimeDelta[SITimeUnit.NANOSECONDS](1779725919000000000)
-    var dt_leaps = DateTime.from_unix_epoch(delta)
-    assert_equal(dt_leaps, DateTime(2026, 5, 25, 16, 18, 39))
-
-    var dt_no_leaps = DateTime[_, UTCFastCal].from_unix_epoch(delta)
-    assert_equal(dt_no_leaps, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39))
+    var delta = TimeDelta[SITimeUnit.NANOSECONDS](1779725919111222333)
+    var dt = DateTime.from_unix_epoch(delta)
+    assert_equal(
+        dt, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39, 111, 222, 333)
+    )
 
 
 def test_midnight_leap_second_gap() raises:
@@ -402,12 +334,27 @@ def test_midnight_leap_second_gap() raises:
     assert_equal(dt_leap_start.add(seconds=2), dt_after_leap)
 
 
-def test_hash() raises:
-    ref1 = DateTime[tz_0_, pycal](1970, 1, 1)
-    assert_equal(ref1, DateTime[tz_0_, pycal].from_hash(ref1.hash()))
-    ref2 = DateTime[tz_0_, unixcal](1970, 1, 1)
-    assert_equal(ref2, DateTime[tz_0_, unixcal].from_hash(ref2.hash()))
-    assert_equal(ref1.hash(), ref2.hash())
+def test_utc_now() raises:
+    var _datetime = Python.import_module("datetime")
+    var py_datetime = _datetime.datetime
+    var py_timezone = _datetime.timezone
+
+    var dt = DateTime[TZ_UTC, PythonCalendar].now()
+    var py_dt = py_datetime.now(py_timezone.utc)
+
+    var dt_timestamp = dt.timestamp()
+    var py_timestamp = Float64(py=py_dt.timestamp())
+    var diff = dt_timestamp - py_timestamp
+    if diff < 0:
+        diff = -diff
+    var tolerance_seconds = Float64(1.0)
+    assert_true(
+        diff <= tolerance_seconds,
+        String(
+            t"dt: {dt} and py_dt: {py_dt} differ by {diff} seconds, which"
+            t" exceeds the allowed tolerance of {tolerance_seconds} seconds."
+        ),
+    )
 
 
 def main() raises:

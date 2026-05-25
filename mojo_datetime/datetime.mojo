@@ -1016,31 +1016,33 @@ struct DateTime[
         return self._compare["<="](other)
 
     @staticmethod
-    def from_unix_epoch(time_delta: TimeDelta) -> Self:
+    def from_unix_epoch(time_delta: TimeDelta) -> DateTime[TZ_UTC, UTCFastCal]:
         """Construct a `DateTime` from the time delta since the Unix Epoch
-        1970-01-01. Adds the cumulative leap seconds since 1972 to the given
-        date if `Self.calendar` takes them into account.
+        1970-01-01.
 
         Args:
-            time_delta: Nanoseconds.
+            time_delta: The time delta.
 
         Returns:
             The result.
         """
-        var dt = DateTime[TZ_UTC, UTCFastCal]().add(time_delta)
-        return dt.to_calendar[Self.calendar]().to_timezone[Self.timezone]()
+        return DateTime[TZ_UTC, UTCFastCal]().add(time_delta)
 
     @always_inline
     @staticmethod
     def now() -> Self:
-        """Construct a datetime from `time.now()`.
+        """Construct a datetime from `time._realtime_nanoseconds()`.
 
         Returns:
             The result.
         """
         # FIXME(https://github.com/modular/modular/issues/6606)
-        return Self.from_unix_epoch(
-            TimeDelta[SITimeUnit.NANOSECONDS](time._realtime_nanoseconds())
+        return (
+            Self.from_unix_epoch(
+                TimeDelta[SITimeUnit.NANOSECONDS](time._realtime_nanoseconds())
+            )
+            .to_calendar[Self.calendar]()
+            .to_timezone[Self.timezone]()
         )
 
     @always_inline
