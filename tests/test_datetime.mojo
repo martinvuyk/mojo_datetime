@@ -46,13 +46,40 @@ def py_dt_datetime() raises -> PythonObject:
 
 
 def assert_datetime_equal(dt: DateTime, py_dt: PythonObject) raises:
-    var message = String("dt: {} is not equal to py_dt: {}. The mojo_datetime {} {} does not equal the Python datetime {} {}")
-    assert_equal(dt.year, UInt16(Int(String(py_dt.year))), message.format(dt, py_dt, "year", dt.year, "year", py_dt.year))
-    assert_equal(dt.month, UInt8(Int(String(py_dt.month))), message.format(dt, py_dt, "month", dt.month, "month", py_dt.month))
-    assert_equal(dt.day, UInt8(Int(String(py_dt.day))), message.format(dt, py_dt, "day", dt.day, "day", py_dt.day))
-    assert_equal(dt.hour, UInt8(Int(String(py_dt.hour))), message.format(dt, py_dt, "hour", dt.hour, "hour", py_dt.hour))
-    assert_equal(dt.minute, UInt8(Int(String(py_dt.minute))), message.format(dt, py_dt, "minute", dt.minute, "minute", py_dt.minute))
-    assert_equal(dt.second, UInt8(Int(String(py_dt.second))), message.format(dt, py_dt, "second", dt.second, "second", py_dt.second))
+    var message = String(
+        "dt: {} is not equal to py_dt: {}. The mojo_datetime {} {} does not"
+        " equal the Python datetime {} {}"
+    )
+    assert_equal(
+        dt.year,
+        UInt16(Int(String(py_dt.year))),
+        message.format(dt, py_dt, "year", dt.year, "year", py_dt.year),
+    )
+    assert_equal(
+        dt.month,
+        UInt8(Int(String(py_dt.month))),
+        message.format(dt, py_dt, "month", dt.month, "month", py_dt.month),
+    )
+    assert_equal(
+        dt.day,
+        UInt8(Int(String(py_dt.day))),
+        message.format(dt, py_dt, "day", dt.day, "day", py_dt.day),
+    )
+    assert_equal(
+        dt.hour,
+        UInt8(Int(String(py_dt.hour))),
+        message.format(dt, py_dt, "hour", dt.hour, "hour", py_dt.hour),
+    )
+    assert_equal(
+        dt.minute,
+        UInt8(Int(String(py_dt.minute))),
+        message.format(dt, py_dt, "minute", dt.minute, "minute", py_dt.minute),
+    )
+    assert_equal(
+        dt.second,
+        UInt8(Int(String(py_dt.second))),
+        message.format(dt, py_dt, "second", dt.second, "second", py_dt.second),
+    )
 
 
 def test_utc_now() raises:
