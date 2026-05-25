@@ -11,7 +11,6 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-
 from std.testing import (
     assert_equal,
     assert_not_equal,
@@ -20,10 +19,11 @@ from std.testing import (
     assert_true,
     TestSuite,
 )
+from std.python import Python, PythonObject
 
 from mojo_datetime.datetime import DateTime
 from mojo_datetime.timezone import TimeZone, TZ_UTC
-from mojo_datetime.timedelta import TimeDelta
+from mojo_datetime.timedelta import TimeDelta, SITimeUnit
 from mojo_datetime.calendar import (
     Calendar,
     PythonCalendar,
@@ -38,6 +38,72 @@ comptime unixcal = UTCCalendar
 comptime tz_0_ = TZ_UTC
 comptime tz_1 = TimeZone("Etc/UTC+1")
 comptime tz1_ = TimeZone("Etc/UTC-1")
+
+
+def py_dt_datetime() raises -> PythonObject:
+    var _datetime = Python.import_module("datetime")
+    return _datetime.datetime
+
+
+def assert_datetime_equal(dt: DateTime, py_dt: PythonObject) raises:
+    var message = String(
+        "dt: {} is not equal to py_dt: {}. The mojo_datetime {} {} does not"
+        " equal the Python datetime {} {}"
+    )
+    assert_equal(
+        dt.year,
+        UInt16(py=py_dt.year),
+        message.format(dt, py_dt, "year", dt.year, "year", py_dt.year),
+    )
+    assert_equal(
+        dt.month,
+        UInt8(py=py_dt.month),
+        message.format(dt, py_dt, "month", dt.month, "month", py_dt.month),
+    )
+    assert_equal(
+        dt.day,
+        UInt8(py=py_dt.day),
+        message.format(dt, py_dt, "day", dt.day, "day", py_dt.day),
+    )
+    assert_equal(
+        dt.hour,
+        UInt8(py=py_dt.hour),
+        message.format(dt, py_dt, "hour", dt.hour, "hour", py_dt.hour),
+    )
+    assert_equal(
+        dt.minute,
+        UInt8(py=py_dt.minute),
+        message.format(dt, py_dt, "minute", dt.minute, "minute", py_dt.minute),
+    )
+    assert_equal(
+        dt.second,
+        UInt8(py=py_dt.second),
+        message.format(dt, py_dt, "second", dt.second, "second", py_dt.second),
+    )
+
+
+def assert_datetime_timestamp_close(
+    dt: DateTime, py_dt: PythonObject, tolerance_seconds: Float64 = 1.0
+) raises:
+    var dt_timestamp = dt.timestamp()
+    var py_timestamp = Float64(py=py_dt.timestamp())
+    var diff = dt_timestamp - py_timestamp
+    if diff < 0:
+        diff = -diff
+    assert_true(
+        diff <= tolerance_seconds,
+        String(
+            t"dt: {dt} and py_dt: {py_dt} differ by {diff} seconds, which"
+            t" exceeds the allowed tolerance of {tolerance_seconds} seconds."
+        ),
+    )
+
+
+def test_utc_now() raises:
+    var dt = DateTime[TZ_UTC, PythonCalendar].now()
+    var py_dt = py_dt_datetime().utcnow()
+    # assert_datetime_timestamp_close(dt=dt, py_dt=py_dt)
+    # assert_datetime_equal(dt=dt, py_dt=py_dt)
 
 
 def test_add() raises:
@@ -277,6 +343,42 @@ def test_unix_epoch() raises:
 
     assert_equal(dt_no_leaps.to_calendar[dt_leaps.calendar](), dt_leaps)
     assert_equal(dt_leaps.to_calendar[dt_no_leaps.calendar](), dt_no_leaps)
+
+
+def test_unix_epoch_second_resolution() raises:
+    var delta = TimeDelta[SITimeUnit.SECONDS](1779725919)
+    var dt_leaps = DateTime.from_unix_epoch(delta)
+    assert_equal(dt_leaps, DateTime(2026, 5, 25, 16, 18, 39))
+
+    var dt_no_leaps = DateTime[_, UTCFastCal].from_unix_epoch(delta)
+    assert_equal(dt_no_leaps, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39))
+
+
+def test_unix_epoch_millisecond_resolution() raises:
+    var delta = TimeDelta[SITimeUnit.MILLISECONDS](1779725919000)
+    var dt_leaps = DateTime.from_unix_epoch(delta)
+    assert_equal(dt_leaps, DateTime(2026, 5, 25, 16, 18, 39))
+
+    var dt_no_leaps = DateTime[_, UTCFastCal].from_unix_epoch(delta)
+    assert_equal(dt_no_leaps, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39))
+
+
+def test_unix_epoch_microsecond_resolution() raises:
+    var delta = TimeDelta[SITimeUnit.MICROSECONDS](1779725919000000)
+    var dt_leaps = DateTime.from_unix_epoch(delta)
+    assert_equal(dt_leaps, DateTime(2026, 5, 25, 16, 18, 39))
+
+    var dt_no_leaps = DateTime[_, UTCFastCal].from_unix_epoch(delta)
+    assert_equal(dt_no_leaps, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39))
+
+
+def test_unix_epoch_nanosecond_resolution() raises:
+    var delta = TimeDelta[SITimeUnit.NANOSECONDS](1779725919000000000)
+    var dt_leaps = DateTime.from_unix_epoch(delta)
+    assert_equal(dt_leaps, DateTime(2026, 5, 25, 16, 18, 39))
+
+    var dt_no_leaps = DateTime[_, UTCFastCal].from_unix_epoch(delta)
+    assert_equal(dt_no_leaps, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39))
 
 
 def test_midnight_leap_second_gap() raises:

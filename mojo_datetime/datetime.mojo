@@ -1040,7 +1040,7 @@ struct DateTime[
         """
         # FIXME(https://github.com/modular/modular/issues/6606)
         return Self.from_unix_epoch(
-            TimeDelta[SITimeUnit.NANOSECONDS](time.monotonic())
+            TimeDelta[SITimeUnit.NANOSECONDS](time._realtime_nanoseconds())
         )
 
     @always_inline
