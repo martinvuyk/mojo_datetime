@@ -52,40 +52,55 @@ def assert_datetime_equal(dt: DateTime, py_dt: PythonObject) raises:
     )
     assert_equal(
         dt.year,
-        UInt16(Int(String(py_dt.year))),
+        UInt16(py=py_dt.year),
         message.format(dt, py_dt, "year", dt.year, "year", py_dt.year),
     )
     assert_equal(
         dt.month,
-        UInt8(Int(String(py_dt.month))),
+        UInt8(py=py_dt.month),
         message.format(dt, py_dt, "month", dt.month, "month", py_dt.month),
     )
     assert_equal(
         dt.day,
-        UInt8(Int(String(py_dt.day))),
+        UInt8(py=py_dt.day),
         message.format(dt, py_dt, "day", dt.day, "day", py_dt.day),
     )
     assert_equal(
         dt.hour,
-        UInt8(Int(String(py_dt.hour))),
+        UInt8(py=py_dt.hour),
         message.format(dt, py_dt, "hour", dt.hour, "hour", py_dt.hour),
     )
     assert_equal(
         dt.minute,
-        UInt8(Int(String(py_dt.minute))),
+        UInt8(py=py_dt.minute),
         message.format(dt, py_dt, "minute", dt.minute, "minute", py_dt.minute),
     )
     assert_equal(
         dt.second,
-        UInt8(Int(String(py_dt.second))),
+        UInt8(py=py_dt.second),
         message.format(dt, py_dt, "second", dt.second, "second", py_dt.second),
+    )
+
+
+def assert_datetime_timestamp_close(dt: DateTime, py_dt: PythonObject, tolerance_seconds: Float64 = 1.0) raises:
+    var dt_timestamp = dt.timestamp()
+    var py_timestamp = Float64(py=py_dt.timestamp())
+    var diff = dt_timestamp - py_timestamp
+    if diff < 0:
+        diff = -diff
+    assert_true(
+        diff <= tolerance_seconds,
+        String(
+            t"dt: {dt} and py_dt: {py_dt} differ by {diff} seconds, which exceeds the allowed tolerance of {tolerance_seconds} seconds."
+        ),
     )
 
 
 def test_utc_now() raises:
     var dt = DateTime.now()
     var py_dt = py_dt_datetime().utcnow()
-    assert_datetime_equal(py_dt=py_dt, dt=dt)
+    assert_datetime_timestamp_close(dt=dt, py_dt=py_dt)
+    assert_datetime_equal(dt=dt, py_dt=py_dt)
 
 
 def test_add() raises:
