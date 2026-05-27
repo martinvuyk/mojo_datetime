@@ -414,6 +414,7 @@ struct DateTime[
         self.u_second = dt.u_second
         self.n_second = dt.n_second
 
+    @always_inline
     def __init__(out self, no_tz_datetime: _TzNaiveDateTime[Self.calendar]):
         """Construct a `DateTime` for a datetime with no timezone.
 
@@ -437,6 +438,7 @@ struct DateTime[
         from_utc = {offset.utc_to_local(from_utc._to_tz_naive_datetime())}
         return from_utc.replace[tz=Self.timezone]()
 
+    @always_inline
     def replace[
         tz: TimeZone = Self.timezone, cal: Calendar = Self.calendar
     ](
@@ -565,6 +567,7 @@ struct DateTime[
         ](self._to_naive_datetime())
         return is_positive, TimeDelta[unit, dtype](naive_delta)
 
+    @always_inline
     def _to_naive_datetime(self) -> _NaiveDateTime:
         return {
             self.year,
@@ -578,6 +581,7 @@ struct DateTime[
             self.n_second,
         }
 
+    @always_inline
     def _to_tz_naive_datetime(self) -> _TzNaiveDateTime[Self.calendar]:
         return {self._to_naive_datetime()}
 
@@ -631,6 +635,7 @@ struct DateTime[
             )
         }
 
+    @always_inline
     def subtract(
         var self,
         *,
@@ -681,58 +686,28 @@ struct DateTime[
         }
 
     @always_inline
-    def add(var self, other: TimeDelta) -> Self:
-        """Adds another `DateTime`.
+    def add(var self, delta: TimeDelta) -> Self:
+        """Adds a `TimeDelta`.
 
         Args:
-            other: Other.
+            delta: The time delta.
 
         Returns:
-            A `DateTime` with the `TimeZone` and `Calendar` of `self`.
+            The result.
         """
-        comptime if other.unit == SITimeUnit.NANOSECONDS:
-            return self.add(n_seconds=UInt64(other.value))
-        elif other.unit == SITimeUnit.MICROSECONDS:
-            return self.add(u_seconds=UInt64(other.value))
-        elif other.unit == SITimeUnit.MILLISECONDS:
-            return self.add(m_seconds=UInt64(other.value))
-        elif other.unit == SITimeUnit.SECONDS:
-            return self.add(seconds=UInt64(other.value))
-        elif other.unit == SITimeUnit.MINUTES:
-            return self.add(minutes=UInt64(other.value))
-        elif other.unit == SITimeUnit.HOURS:
-            return self.add(hours=UInt64(other.value))
-        elif other.unit == SITimeUnit.DAYS:
-            return self.add(days=UInt64(other.value))
-        else:
-            comptime assert False, "time unit not implemented"
+        return Self(self._to_tz_naive_datetime().add(delta))
 
     @always_inline
-    def subtract(var self, other: TimeDelta) -> Self:
+    def subtract(var self, delta: TimeDelta) -> Self:
         """Subtracts another `DateTime`.
 
         Args:
-            other: Other.
+            delta: The time delta.
 
         Returns:
-            A `DateTime` with the `TimeZone` and `Calendar` of `self`.
+            The result.
         """
-        comptime if other.unit == SITimeUnit.NANOSECONDS:
-            return self.subtract(n_seconds=UInt64(other.value))
-        elif other.unit == SITimeUnit.MICROSECONDS:
-            return self.subtract(u_seconds=UInt64(other.value))
-        elif other.unit == SITimeUnit.MILLISECONDS:
-            return self.subtract(m_seconds=UInt64(other.value))
-        elif other.unit == SITimeUnit.SECONDS:
-            return self.subtract(seconds=UInt64(other.value))
-        elif other.unit == SITimeUnit.MINUTES:
-            return self.subtract(minutes=UInt64(other.value))
-        elif other.unit == SITimeUnit.HOURS:
-            return self.subtract(hours=UInt64(other.value))
-        elif other.unit == SITimeUnit.DAYS:
-            return self.subtract(days=UInt64(other.value))
-        else:
-            comptime assert False, "time unit not implemented"
+        return Self(self._to_tz_naive_datetime().subtract(delta))
 
     @always_inline
     def subtract[
@@ -752,9 +727,9 @@ struct DateTime[
         Returns:
             The absolute time delta between the two dates.
         """
-        var s = self.to_delta_since_epoch[unit, dtype]()
-        var o = other.to_delta_since_epoch[unit, dtype]()
-        return (s - o) if self >= other else (o - s)
+        return self._to_tz_naive_datetime().subtract[unit, dtype](
+            other._to_tz_naive_datetime()
+        )
 
     @always_inline
     def __add__(var self, other: TimeDelta) -> Self:

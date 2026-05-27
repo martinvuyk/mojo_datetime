@@ -41,6 +41,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
     def __lt__(self, other: Self) -> Bool:
         return self.dt < other.dt
 
+    @always_inline
     def add(
         var self,
         *,
@@ -62,7 +63,44 @@ struct _TzNaiveDateTime[calendar: Calendar](
             On overflow, the `DateTime` starts from the beginning of the
             calendar's epoch and keeps evaluating until valid.
         """
+        comptime if Self.calendar._is_gregorian_family:
+            return self._add_gregorian(
+                years=years,
+                months=months,
+                days=days,
+                hours=hours,
+                minutes=minutes,
+                seconds=seconds,
+                m_seconds=m_seconds,
+                u_seconds=u_seconds,
+                n_seconds=n_seconds,
+            )
+        else:
+            return self._add_generic(
+                years=years,
+                months=months,
+                days=days,
+                hours=hours,
+                minutes=minutes,
+                seconds=seconds,
+                m_seconds=m_seconds,
+                u_seconds=u_seconds,
+                n_seconds=n_seconds,
+            )
 
+    def _add_generic(
+        var self,
+        *,
+        years: UInt64 = 0,
+        months: UInt64 = 0,
+        days: UInt64 = 0,
+        hours: UInt64 = 0,
+        minutes: UInt64 = 0,
+        seconds: UInt64 = 0,
+        m_seconds: UInt64 = 0,
+        u_seconds: UInt64 = 0,
+        n_seconds: UInt64 = 0,
+    ) -> Self:
         var max_year = UInt64(self.calendar.max_year)
         var y = UInt64(self.dt.year) + years
         if y <= max_year:
@@ -88,7 +126,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 years += delta // max_val
                 delta = delta % max_val
             self.dt.month = self.calendar.min_month + UInt8(delta)
-            self = self.add(years=years)
+            self = self._add_generic(years=years)
 
         var max_day = UInt64(self.calendar.max_days_in_month(self.dt))
         var d = UInt64(self.dt.day) + days
@@ -96,7 +134,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
             self.dt.day = UInt8(d)
         else:
             self.dt.day = self.calendar.min_day
-            self = self.add(months=1)
+            self = self._add_generic(months=1)
 
             var delta = d - (max_day + 1)
             var max_val = UInt64(
@@ -105,7 +143,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
             )
             if delta >= max_val:
                 var days_before = self.calendar.days_since_epoch(self.dt)
-                self = self.add(months=delta // max_val)
+                self = self._add_generic(months=delta // max_val)
                 var days_after = self.calendar.days_since_epoch(self.dt)
                 var diff = Int64(days_after) - Int64(days_before)
                 if diff < 0:
@@ -125,7 +163,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 )
                 if delta >= curr_month_days:
                     delta -= curr_month_days
-                    self = self.add(months=1)
+                    self = self._add_generic(months=1)
                 else:
                     self.dt.day = self.calendar.min_day + UInt8(delta)
                     delta = 0
@@ -144,7 +182,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 days += delta // max_val
                 delta = delta % max_val
             self.dt.hour = self.calendar.min_hour + UInt8(delta)
-            self = self.add(days=days)
+            self = self._add_generic(days=days)
 
         var max_min = UInt64(self.calendar.max_minute)
         var mi = UInt64(self.dt.minute) + minutes
@@ -160,7 +198,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 hours += delta // max_val
                 delta = delta % max_val
             self.dt.minute = self.calendar.min_minute + UInt8(delta)
-            self = self.add(hours=hours)
+            self = self._add_generic(hours=hours)
 
         var max_sec = UInt64(self.calendar.max_second(self.dt))
         var s = UInt64(self.dt.second) + seconds
@@ -168,7 +206,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
             self.dt.second = UInt8(s)
         else:
             self.dt.second = self.calendar.min_second
-            self = self.add(minutes=1)
+            self = self._add_generic(minutes=1)
 
             var delta = s - (max_sec + 1)
             var max_val = UInt64(
@@ -179,7 +217,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 var seconds_before = self.calendar.to_delta_since_epoch[
                     SITimeUnit.SECONDS
                 ](self.dt)
-                self = self.add(minutes=delta // max_val)
+                self = self._add_generic(minutes=delta // max_val)
                 var seconds_after = self.calendar.to_delta_since_epoch[
                     SITimeUnit.SECONDS
                 ](self.dt)
@@ -205,7 +243,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
 
             while delta >= curr_minute_seconds:
                 delta -= curr_minute_seconds
-                self = self.add(minutes=1)
+                self = self._add_generic(minutes=1)
                 curr_minute_seconds = UInt64(
                     self.calendar.max_second(self.dt)
                     + UInt8(self.calendar.min_second == 0)
@@ -228,7 +266,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 seconds += delta // max_val
                 delta = delta % max_val
             self.dt.m_second = self.calendar.min_millisecond + UInt16(delta)
-            self = self.add(seconds=seconds)
+            self = self._add_generic(seconds=seconds)
 
         var max_usec = UInt64(self.calendar.max_microsecond)
         var us = UInt64(self.dt.u_second) + u_seconds
@@ -245,7 +283,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 m_seconds += delta // max_val
                 delta = delta % max_val
             self.dt.u_second = self.calendar.min_microsecond + UInt16(delta)
-            self = self.add(m_seconds=m_seconds)
+            self = self._add_generic(m_seconds=m_seconds)
 
         var max_nsec = UInt64(self.calendar.max_nanosecond)
         var ns = UInt64(self.dt.n_second) + n_seconds
@@ -262,9 +300,147 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 u_seconds += delta // max_val
                 delta = delta % max_val
             self.dt.n_second = self.calendar.min_nanosecond + UInt16(delta)
-            self = self.add(u_seconds=u_seconds)
+            self = self._add_generic(u_seconds=u_seconds)
         return self
 
+    @always_inline
+    @staticmethod
+    def _ymd_to_days(y: UInt16, m: UInt8, d: UInt8) -> UInt64:
+        """Hinnant's algorithm to convert Y/M/D to days since 0001-01-01."""
+        var y_int = Int64(y)
+        var m_int = Int64(m)
+        var d_int = Int64(d)
+
+        y_int -= Int64(m_int <= 2)
+        var era = y_int // 400
+        var yoe = y_int - era * 400
+        var mp = m_int + Int64(9 if m_int <= 2 else -3)
+        var doy = (153 * mp + 2) // 5 + d_int - 1
+        var doe = yoe * 365 + yoe // 4 - yoe // 100 + doy
+        return UInt64(era * 146097 + doe - 306)
+
+    @always_inline
+    @staticmethod
+    def _days_to_ymd(days: UInt64) -> Tuple[UInt16, UInt8, UInt8]:
+        """Hinnant's algorithm to convert days since 0001-01-01 to Y/M/D."""
+        var z = Int64(days) + 306
+        var era = z // 146097
+        var doe = z - era * 146097
+        var yoe = (doe - doe // 1460 + doe // 36524 - doe // 146096) // 365
+        var y = yoe + era * 400
+        var doy = doe - (365 * yoe + yoe // 4 - yoe // 100)
+        var mp = (5 * doy + 2) // 153
+        var d = doy - (153 * mp + 2) // 5 + 1
+        var m = mp + Int64(3 if mp < 10 else -9)
+        var final_year = y + Int64(m <= 2)
+        return UInt16(final_year), UInt8(m), UInt8(d)
+
+    @always_inline
+    @staticmethod
+    def _from_days_since_epoch(days: UInt32) -> Tuple[UInt16, UInt8, UInt8]:
+        """Safely maps Calendar epoch days back to Y/M/D."""
+        comptime epoch_start = Self._ymd_to_days(Self.calendar.min_year, 1, 1)
+        return Self._days_to_ymd(UInt64(days) + epoch_start)
+
+    def _add_gregorian(
+        var self,
+        *,
+        years: UInt64 = 0,
+        months: UInt64 = 0,
+        days: UInt64 = 0,
+        hours: UInt64 = 0,
+        minutes: UInt64 = 0,
+        seconds: UInt64 = 0,
+        m_seconds: UInt64 = 0,
+        u_seconds: UInt64 = 0,
+        n_seconds: UInt64 = 0,
+    ) -> Self:
+        var curr_ns = (
+            UInt64(self.dt.m_second) * 1_000_000
+            + UInt64(self.dt.u_second) * 1_000
+            + UInt64(self.dt.n_second)
+        )
+        var add_ns = m_seconds * 1_000_000 + u_seconds * 1_000 + n_seconds
+
+        var total_ns = curr_ns + add_ns
+        var overflow_s = total_ns // 1_000_000_000
+        var final_ns = total_ns % 1_000_000_000
+
+        var total_added_s = hours * 3600 + minutes * 60 + seconds + overflow_s
+
+        var y_temp = UInt64(self.dt.year) + years
+        var m_temp = UInt64(self.dt.month) - 1 + months
+        y_temp += m_temp // 12
+        var final_month = UInt8((m_temp % 12) + 1)
+
+        comptime max_y = UInt64(9999)
+        if y_temp > max_y:
+            comptime max_val = max_y + UInt64(Self.calendar.min_year == 0)
+            var delta = y_temp - (max_y + 1)
+            y_temp = UInt64(Self.calendar.min_year) + (delta % max_val)
+
+        var final_year = UInt16(y_temp)
+
+        var curr_days = Self._ymd_to_days(final_year, final_month, self.dt.day)
+        var target_epoch_day = curr_days + days
+
+        comptime min_y_days = Self._ymd_to_days(Self.calendar.min_year, 1, 1)
+        comptime max_y_days = Self._ymd_to_days(9999, 12, 31)
+
+        if target_epoch_day > max_y_days:
+            comptime cal_total_days = max_y_days - min_y_days + 1
+            var delta_days = target_epoch_day - (max_y_days + 1)
+            target_epoch_day = min_y_days + (delta_days % cal_total_days)
+
+        var f_y, f_m, f_d = Self._days_to_ymd(target_epoch_day)
+
+        var start_linear_s = Self.calendar.to_delta_since_epoch[
+            SITimeUnit.SECONDS, DType.int64
+        ]({f_y, f_m, f_d, self.dt.hour, self.dt.minute, self.dt.second})
+        var target_linear_s = start_linear_s + Int64(total_added_s)
+
+        var cal_s = Self.calendar.to_delta_since_epoch[
+            SITimeUnit.SECONDS, DType.int64
+        ]({9999, 12, 31, 23, 59, 59})
+        var cal_total_s = cal_s + 1
+
+        if target_linear_s >= cal_total_s:
+            target_linear_s = target_linear_s % cal_total_s
+
+        var est_epoch_day = UInt32(target_linear_s // 86400)
+        var est_y, est_m, est_d = Self._from_days_since_epoch(est_epoch_day)
+        var est_linear = Self.calendar.to_delta_since_epoch[
+            SITimeUnit.SECONDS, DType.int64
+        ]({est_y, est_m, est_d})
+
+        if est_linear > target_linear_s:
+            est_epoch_day -= 1
+            est_y, est_m, est_d = Self._from_days_since_epoch(est_epoch_day)
+            est_linear = Self.calendar.to_delta_since_epoch[
+                SITimeUnit.SECONDS, DType.int64
+            ]({est_y, est_m, est_d})
+
+        self.dt.year = est_y
+        self.dt.month = est_m
+        self.dt.day = est_d
+
+        var rem_s = UInt64(target_linear_s - est_linear)
+        if rem_s < 86400:
+            self.dt.hour = UInt8(rem_s // 3600)
+            self.dt.minute = UInt8((rem_s % 3600) // 60)
+            self.dt.second = UInt8(rem_s % 60)
+        else:  # leap second day
+            self.dt.hour = 23
+            self.dt.minute = 59
+            self.dt.second = UInt8(59 + (rem_s - 86399))
+
+        self.dt.m_second = UInt16(final_ns // 1_000_000)
+        self.dt.u_second = UInt16((final_ns % 1_000_000) // 1_000)
+        self.dt.n_second = UInt16(final_ns % 1_000)
+
+        return self
+
+    @always_inline
     def subtract(
         var self,
         *,
@@ -286,7 +462,44 @@ struct _TzNaiveDateTime[calendar: Calendar](
             On overflow, the `DateTime` goes to the end of the calendar's epoch
             and keeps evaluating until valid.
         """
+        comptime if Self.calendar._is_gregorian_family:
+            return self._subtract_gregorian(
+                years=years,
+                months=months,
+                days=days,
+                hours=hours,
+                minutes=minutes,
+                seconds=seconds,
+                m_seconds=m_seconds,
+                u_seconds=u_seconds,
+                n_seconds=n_seconds,
+            )
+        else:
+            return self._subtract_generic(
+                years=years,
+                months=months,
+                days=days,
+                hours=hours,
+                minutes=minutes,
+                seconds=seconds,
+                m_seconds=m_seconds,
+                u_seconds=u_seconds,
+                n_seconds=n_seconds,
+            )
 
+    def _subtract_generic(
+        var self,
+        *,
+        years: UInt64 = 0,
+        months: UInt64 = 0,
+        days: UInt64 = 0,
+        hours: UInt64 = 0,
+        minutes: UInt64 = 0,
+        seconds: UInt64 = 0,
+        m_seconds: UInt64 = 0,
+        u_seconds: UInt64 = 0,
+        n_seconds: UInt64 = 0,
+    ) -> Self:
         var min_nsec = Int64(self.calendar.min_nanosecond)
         var ns = Int64(self.dt.n_second) - Int64(n_seconds)
         if ns >= min_nsec:
@@ -302,7 +515,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 u_seconds += delta // max_val
                 delta = delta % max_val
             self.dt.n_second = self.calendar.max_nanosecond - UInt16(delta)
-            self = self.subtract(u_seconds=u_seconds)
+            self = self._subtract_generic(u_seconds=u_seconds)
 
         var min_usec = Int64(self.calendar.min_microsecond)
         var us = Int64(self.dt.u_second) - Int64(u_seconds)
@@ -319,7 +532,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 m_seconds += delta // max_val
                 delta = delta % max_val
             self.dt.u_second = self.calendar.max_microsecond - UInt16(delta)
-            self = self.subtract(m_seconds=m_seconds)
+            self = self._subtract_generic(m_seconds=m_seconds)
 
         var min_msec = Int64(self.calendar.min_millisecond)
         var ms = Int64(self.dt.m_second) - Int64(m_seconds)
@@ -336,14 +549,14 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 seconds += delta // max_val
                 delta = delta % max_val
             self.dt.m_second = self.calendar.max_millisecond - UInt16(delta)
-            self = self.subtract(seconds=seconds)
+            self = self._subtract_generic(seconds=seconds)
 
         var min_sec = Int64(self.calendar.min_second)
         var s = Int64(self.dt.second) - Int64(seconds)
         if s >= min_sec:
             self.dt.second = UInt8(s)
         else:
-            self = self.subtract(minutes=1)
+            self = self._subtract_generic(minutes=1)
 
             var delta = UInt64((Int64(min_sec) - 1) - s)
             var max_val = UInt64(
@@ -354,7 +567,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 var seconds_before = self.calendar.to_delta_since_epoch[
                     SITimeUnit.SECONDS
                 ](self.dt)
-                self = self.subtract(minutes=delta // max_val)
+                self = self._subtract_generic(minutes=delta // max_val)
                 var seconds_after = self.calendar.to_delta_since_epoch[
                     SITimeUnit.SECONDS
                 ](self.dt)
@@ -381,7 +594,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
 
             while delta >= prev_minute_seconds:
                 delta -= prev_minute_seconds
-                self = self.subtract(minutes=1)
+                self = self._subtract_generic(minutes=1)
                 prev_minute_seconds = UInt64(
                     self.calendar.max_second(self.dt)
                     + UInt8(self.calendar.min_second == 0)
@@ -403,7 +616,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 hours += delta // max_val
                 delta = delta % max_val
             self.dt.minute = self.calendar.max_minute - UInt8(delta)
-            self = self.subtract(hours=hours)
+            self = self._subtract_generic(hours=hours)
 
         var min_hour = Int64(self.calendar.min_hour)
         var h = Int64(self.dt.hour) - Int64(hours)
@@ -419,7 +632,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 days += delta // max_val
                 delta = delta % max_val
             self.dt.hour = self.calendar.max_hour - UInt8(delta)
-            self = self.subtract(days=days)
+            self = self._subtract_generic(days=days)
 
         var min_day = Int64(self.calendar.min_day)
         var d = Int64(self.dt.day) - Int64(days)
@@ -427,7 +640,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
             self.dt.day = UInt8(d)
         else:
             self.dt.day = self.calendar.min_day
-            self = self.subtract(months=1)
+            self = self._subtract_generic(months=1)
 
             var delta = UInt64((min_day - 1) - d)
             var max_val = UInt64(
@@ -436,7 +649,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
             )
             if delta >= max_val:
                 var days_before = self.calendar.days_since_epoch(self.dt)
-                self = self.subtract(months=delta // max_val)
+                self = self._subtract_generic(months=delta // max_val)
                 var days_after = self.calendar.days_since_epoch(self.dt)
                 var diff = Int64(days_before) - Int64(days_after)
                 if diff < 0:
@@ -456,8 +669,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
 
             while delta >= prev_month_max:
                 delta -= prev_month_max
-                self = self.subtract(months=1)
-                # Recompute the new month's length for the next iteration
+                self = self._subtract_generic(months=1)
                 prev_month_max = UInt64(
                     self.calendar.max_days_in_month(self.dt)
                     + UInt8(self.calendar.min_day == 0)
@@ -481,7 +693,7 @@ struct _TzNaiveDateTime[calendar: Calendar](
                 years += delta // max_val
                 delta = delta % max_val
             self.dt.month = self.calendar.max_month - UInt8(delta)
-            self = self.subtract(years=years)
+            self = self._subtract_generic(years=years)
 
         var min_year = Int64(self.calendar.min_year)
         var y = Int64(self.dt.year) - Int64(years)
@@ -494,11 +706,201 @@ struct _TzNaiveDateTime[calendar: Calendar](
             var delta = UInt64((min_year - 1) - y)
             self.dt.year = self.calendar.max_year - UInt16(delta % max_val)
 
-        return self.add(days=0)  #  to correct days and months
+        return self._add_generic(days=0)  #  to correct days and months
+
+    def _subtract_gregorian(
+        var self,
+        *,
+        years: UInt64 = 0,
+        months: UInt64 = 0,
+        days: UInt64 = 0,
+        hours: UInt64 = 0,
+        minutes: UInt64 = 0,
+        seconds: UInt64 = 0,
+        m_seconds: UInt64 = 0,
+        u_seconds: UInt64 = 0,
+        n_seconds: UInt64 = 0,
+    ) -> Self:
+        var sub_ns = (
+            n_seconds % 1_000_000_000
+            + (u_seconds % 1_000_000) * 1_000
+            + (m_seconds % 1_000) * 1_000_000
+        )
+        var sub_s_from_ns = (
+            n_seconds // 1_000_000_000
+            + u_seconds // 1_000_000
+            + m_seconds // 1_000
+            + sub_ns // 1_000_000_000
+        )
+        var final_sub_ns = sub_ns % 1_000_000_000
+
+        var current_ns = (
+            UInt64(self.dt.m_second) * 1_000_000
+            + UInt64(self.dt.u_second) * 1_000
+            + UInt64(self.dt.n_second)
+        )
+
+        var ns_borrow = UInt64(0)
+        if current_ns < final_sub_ns:
+            ns_borrow = 1
+            current_ns += 1_000_000_000
+
+        var final_ns = current_ns - final_sub_ns
+        var total_sub_s = (
+            hours * 3600 + minutes * 60 + seconds + sub_s_from_ns + ns_borrow
+        )
+
+        var current_days = Int64(
+            Self._ymd_to_days(self.dt.year, self.dt.month, self.dt.day)
+        )
+        var target_epoch_day_signed = current_days - Int64(days)
+
+        comptime min_y_days = Int64(
+            Self._ymd_to_days(Self.calendar.min_year, 1, 1)
+        )
+        comptime max_y_days = Int64(Self._ymd_to_days(9999, 12, 31))
+
+        if target_epoch_day_signed < min_y_days:
+            comptime cal_total_days = max_y_days - min_y_days + 1
+            var delta_days = min_y_days - 1 - target_epoch_day_signed
+            target_epoch_day_signed = max_y_days - (delta_days % cal_total_days)
+
+        var target_epoch_day = UInt64(target_epoch_day_signed)
+        var f_y, f_m, f_d = Self._days_to_ymd(target_epoch_day)
+
+        var y_int = Int64(f_y) - Int64(years)
+        var m_temp = UInt64(f_m) - 1
+
+        if months > m_temp:
+            var diff = months - m_temp
+            var years_to_sub = (diff // 12) + UInt64(diff % 12 != 0)
+            y_int -= Int64(years_to_sub)
+            m_temp = 12 - (diff % 12)
+            if m_temp == 12:
+                m_temp = 0
+        else:
+            m_temp -= months
+
+        comptime min_y = Int64(Self.calendar.min_year)
+        if y_int < min_y:
+            comptime max_val = Int64(9999) + Int64(min_y == 0)
+            var delta = (min_y - 1) - y_int
+            y_int = Int64(9999) - (delta % max_val)
+
+        f_y = UInt16(y_int)
+        f_m = UInt8(m_temp + 1)
+
+        var start_linear_s = Self.calendar.to_delta_since_epoch[
+            SITimeUnit.SECONDS, DType.int64
+        ]({f_y, f_m, f_d, self.dt.hour, self.dt.minute, self.dt.second})
+        var target_linear_s = start_linear_s - Int64(total_sub_s)
+
+        if target_linear_s < 0:
+            var cal_s = Self.calendar.to_delta_since_epoch[
+                SITimeUnit.SECONDS, DType.int64
+            ]({9999, 12, 31, 23, 59, 59})
+            var cal_total_s = cal_s + 1
+
+            var delta_s = -target_linear_s
+            target_linear_s = cal_total_s - 1 - ((delta_s - 1) % cal_total_s)
+
+        var est_epoch_day = UInt32(target_linear_s // 86400)
+        var est_y, est_m, est_d = Self._from_days_since_epoch(est_epoch_day)
+        var est_linear = Self.calendar.to_delta_since_epoch[
+            SITimeUnit.SECONDS, DType.int64
+        ]({est_y, est_m, est_d})
+
+        if est_linear > target_linear_s:
+            est_epoch_day -= 1
+            est_y, est_m, est_d = Self._from_days_since_epoch(est_epoch_day)
+            est_linear = Self.calendar.to_delta_since_epoch[
+                SITimeUnit.SECONDS, DType.int64
+            ]({est_y, est_m, est_d})
+
+        self.dt.year = est_y
+        self.dt.month = est_m
+        self.dt.day = est_d
+
+        var rem_s = UInt64(target_linear_s - est_linear)
+        if rem_s < 86400:
+            self.dt.hour = UInt8(rem_s // 3600)
+            self.dt.minute = UInt8((rem_s % 3600) // 60)
+            self.dt.second = UInt8(rem_s % 60)
+        else:
+            self.dt.hour = 23
+            self.dt.minute = 59
+            self.dt.second = UInt8(59 + (rem_s - 86399))
+
+        self.dt.m_second = UInt16(final_ns // 1_000_000)
+        self.dt.u_second = UInt16((final_ns % 1_000_000) // 1_000)
+        self.dt.n_second = UInt16(final_ns % 1_000)
+
+        return self
+
+    @always_inline
+    def add(var self, other: TimeDelta) -> Self:
+        comptime if other.unit == SITimeUnit.NANOSECONDS:
+            return self.add(n_seconds=UInt64(other.value))
+        elif other.unit == SITimeUnit.MICROSECONDS:
+            return self.add(u_seconds=UInt64(other.value))
+        elif other.unit == SITimeUnit.MILLISECONDS:
+            return self.add(m_seconds=UInt64(other.value))
+        elif other.unit == SITimeUnit.SECONDS:
+            return self.add(seconds=UInt64(other.value))
+        elif other.unit == SITimeUnit.MINUTES:
+            return self.add(minutes=UInt64(other.value))
+        elif other.unit == SITimeUnit.HOURS:
+            return self.add(hours=UInt64(other.value))
+        elif other.unit == SITimeUnit.DAYS:
+            return self.add(days=UInt64(other.value))
+        else:
+            comptime assert False, "time unit not implemented"
+
+    @always_inline
+    def subtract(var self, other: TimeDelta) -> Self:
+        comptime if other.unit == SITimeUnit.NANOSECONDS:
+            return self.subtract(n_seconds=UInt64(other.value))
+        elif other.unit == SITimeUnit.MICROSECONDS:
+            return self.subtract(u_seconds=UInt64(other.value))
+        elif other.unit == SITimeUnit.MILLISECONDS:
+            return self.subtract(m_seconds=UInt64(other.value))
+        elif other.unit == SITimeUnit.SECONDS:
+            return self.subtract(seconds=UInt64(other.value))
+        elif other.unit == SITimeUnit.MINUTES:
+            return self.subtract(minutes=UInt64(other.value))
+        elif other.unit == SITimeUnit.HOURS:
+            return self.subtract(hours=UInt64(other.value))
+        elif other.unit == SITimeUnit.DAYS:
+            return self.subtract(days=UInt64(other.value))
+        else:
+            comptime assert False, "time unit not implemented"
+
+    @always_inline
+    def subtract[
+        unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = DType.uint64
+    ](var self, other: Self) -> TimeDelta[
+        unit, dtype
+    ] where dtype.is_unsigned():
+        var s = self.calendar.to_delta_since_epoch[unit, dtype](self.dt)
+        var o = other.calendar.to_delta_since_epoch[unit, dtype](other.dt)
+        return {(s - o) if self >= other else (o - s)}
 
     def to_calendar[cal: Calendar](self) -> _TzNaiveDateTime[cal]:
         comptime if Self.calendar() == cal():
             return rebind[_TzNaiveDateTime[cal]](self)
+        elif Self.calendar._is_gregorian_family and cal._is_gregorian_family:
+            comptime if Self.calendar.includes_leapsecs and (
+                cal.includes_leapsecs
+            ):
+                return _TzNaiveDateTime[cal](self.dt)
+            elif Self.calendar.includes_leapsecs:
+                var leapsecs = UInt64(
+                    self.calendar.leapsecs_since_epoch(self.dt)
+                )
+                return _TzNaiveDateTime[cal](self.dt).add(seconds=leapsecs)
+            else:
+                var leapsecs = UInt64(cal.leapsecs_since_epoch(self.dt))
+                return _TzNaiveDateTime[cal](self.dt).subtract(seconds=leapsecs)
 
         var is_positive, seconds = self.calendar.to_delta_since_unix_epoch[
             SITimeUnit.SECONDS
@@ -523,13 +925,3 @@ struct _TzNaiveDateTime[calendar: Calendar](
                     n_seconds=n_seconds,
                 )
             )
-
-    @always_inline
-    def subtract[
-        unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = DType.uint64
-    ](var self, other: Self) -> TimeDelta[
-        unit, dtype
-    ] where dtype.is_unsigned():
-        var s = self.calendar.to_delta_since_epoch[unit, dtype](self.dt)
-        var o = other.calendar.to_delta_since_epoch[unit, dtype](other.dt)
-        return {(s - o) if self >= other else (o - s)}

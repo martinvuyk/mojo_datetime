@@ -280,37 +280,26 @@ def test_unix_epoch() raises:
     var dt_leaps = DateTime.from_unix_epoch(delta).to_calendar[PythonCalendar]()
     assert_equal(dt_leaps, DateTime(2026, 5, 19, 3, 2, 16))
 
-    var dt_no_leaps = DateTime.from_unix_epoch(delta)
-    assert_equal(dt_no_leaps, DateTime[_, UTCFastCal](2026, 5, 19, 3, 2, 43))
+    comptime DT = DateTime[_, UTCFastCal]
+    var dt_no_leaps = DT.from_unix_epoch(delta)
+    assert_equal(dt_no_leaps, DT(2026, 5, 19, 3, 2, 43))
 
     assert_equal(dt_no_leaps.to_calendar[dt_leaps.calendar](), dt_leaps)
     assert_equal(dt_leaps.to_calendar[dt_no_leaps.calendar](), dt_no_leaps)
 
+    # test resolution
 
-def test_unix_epoch_second_resolution() raises:
-    var delta = TimeDelta[SITimeUnit.SECONDS](1779725919)
-    var dt = DateTime.from_unix_epoch(delta)
-    assert_equal(dt, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39))
+    var dt = DT().add(TimeDelta(seconds=1779725919))
+    assert_equal(dt, DT(2026, 5, 25, 16, 18, 39))
 
+    dt = DT().add(TimeDelta(milliseconds=1779725919111))
+    assert_equal(dt, DT(2026, 5, 25, 16, 18, 39, 111))
 
-def test_unix_epoch_millisecond_resolution() raises:
-    var delta = TimeDelta[SITimeUnit.MILLISECONDS](1779725919111)
-    var dt = DateTime.from_unix_epoch(delta)
-    assert_equal(dt, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39, 111))
+    dt = DT().add(TimeDelta(microseconds=1779725919111222))
+    assert_equal(dt, DT(2026, 5, 25, 16, 18, 39, 111, 222))
 
-
-def test_unix_epoch_microsecond_resolution() raises:
-    var delta = TimeDelta[SITimeUnit.MICROSECONDS](1779725919111222)
-    var dt = DateTime.from_unix_epoch(delta)
-    assert_equal(dt, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39, 111, 222))
-
-
-def test_unix_epoch_nanosecond_resolution() raises:
-    var delta = TimeDelta[SITimeUnit.NANOSECONDS](1779725919111222333)
-    var dt = DateTime.from_unix_epoch(delta)
-    assert_equal(
-        dt, DateTime[_, UTCFastCal](2026, 5, 25, 16, 18, 39, 111, 222, 333)
-    )
+    dt = DT().add(TimeDelta(nanoseconds=1779725919111222333))
+    assert_equal(dt, DT(2026, 5, 25, 16, 18, 39, 111, 222, 333))
 
 
 def test_midnight_leap_second_gap() raises:
