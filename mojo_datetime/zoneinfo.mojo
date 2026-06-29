@@ -354,7 +354,9 @@ struct TzDT(Equatable, ImplicitlyCopyable, Writable):
 # ===----------------------------------------------------------------------=== #
 
 
-trait UTCZoneInfo(Defaultable, Equatable, ImplicitlyCopyable):
+trait UTCZoneInfo(
+    Defaultable, Equatable, ImplicitlyCopyable, ImplicitlyDeletable
+):
     """A trait that defines what a struct containing zone info should look
     like."""
 

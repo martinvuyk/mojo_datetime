@@ -225,7 +225,7 @@ struct DTFormatSpecParsingError(TrivialRegisterPassable, Writable):
         writer.write("DTFormatSpecParsingError")
 
 
-trait DTLocale(Copyable, Defaultable, ImplicitlyDestructible):
+trait DTLocale(Copyable, Defaultable, ImplicitlyDeletable):
     """A trait to provide a locale that helps in stringifying values with
     region-specific characteristics."""
 
@@ -466,7 +466,7 @@ comptime _posix_days[calendar: Calendar]: InlineArray[
 struct LibCLocale(DTLocale):
     """A POSIX standard C locale via FFI with Libc."""
 
-    comptime _ptr = Optional[OpaquePointer[MutExternalOrigin]]
+    comptime _ptr = Optional[OpaquePointer[MutUntrackedOrigin]]
     var _loc: Self._ptr
 
     def __init__(out self, var locale_name: String) raises:
@@ -1809,9 +1809,7 @@ def _write_to[
             ]() {mut writer, read dt, read offset, read loc}:
                 _write_to[fmt_str, tz_str, locale_t](writer, dt, offset)
 
-            comptime loc_t = type_of(
-                trait_downcast_var[NativeDTLocale](locale_t())
-            )
+            comptime loc_t = type_of(locale_t())
 
             comptime if c == FormatCode.c.value[0]:
                 write_to[loc_t.datetime_fmt_str]()
@@ -2418,7 +2416,7 @@ def _parse[
                     offset,
                 )
 
-            comptime loc_t = type_of(trait_downcast[NativeDTLocale](loc))
+            comptime loc_t = type_of(loc)
 
             comptime if c == FormatCode.c.value[0]:
                 parse[loc_t.datetime_fmt_str]()

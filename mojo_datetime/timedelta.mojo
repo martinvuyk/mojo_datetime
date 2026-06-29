@@ -17,7 +17,7 @@ from .calendar import Calendar, PythonCalendar, SITimeUnit
 # FIXME(https://github.com/modular/modular/issues/6485): make this TrivialRegisterPassable
 struct TimeDelta[
     unit: SITimeUnit = SITimeUnit.SECONDS, dtype: DType = DType.uint64
-](Comparable, ImplicitlyCopyable, Writable):
+](Comparable, ImplicitlyCopyable, Writable) where dtype.is_unsigned():
     """A struct representing a positive (incl. 0) time delta.
 
     Parameters:
@@ -35,7 +35,6 @@ struct TimeDelta[
         Args:
             value: The value for the `TimeDelta`.
         """
-        comptime assert Self.dtype.is_unsigned()
         self.value = value
 
     @always_inline
@@ -45,7 +44,6 @@ struct TimeDelta[
         Args:
             value: The value for the `TimeDelta`.
         """
-        comptime assert Self.dtype.is_unsigned()
         assert value >= 0, "A `TimeDelta`'s value is expected to be >= 0"
         self.value = Scalar[Self.dtype](value)
 
@@ -56,138 +54,205 @@ struct TimeDelta[
         Args:
             value: The value for the `TimeDelta`.
         """
-        comptime assert Self.dtype.is_unsigned()
         self.value = Scalar[Self.dtype](value)
 
     @always_inline
-    def __init__[
-        v_dtype: DType = Self.dtype
-    ](
-        *, days: Scalar[v_dtype], out self: TimeDelta[SITimeUnit.DAYS, v_dtype]
-    ) where v_dtype.is_unsigned():
-        """Construct a `TimeDelta`.
-
-        Parameters:
-            v_dtype: The dtype of the value.
+    def __init__(
+        *,
+        days: Scalar[Self.dtype],
+        out self: TimeDelta[SITimeUnit.DAYS, Self.dtype],
+    ):
+        """Construct a `Self.dtype`.
 
         Args:
             days: The value for the `TimeDelta`.
         """
-        comptime assert v_dtype.is_unsigned()
         self.value = days
 
     @always_inline
-    def __init__[
-        v_dtype: DType = Self.dtype
-    ](
-        *,
-        hours: Scalar[v_dtype],
-        out self: TimeDelta[SITimeUnit.HOURS, v_dtype],
-    ) where v_dtype.is_unsigned():
-        """Construct a `TimeDelta`.
+    def __init__(
+        *, days: IntLiteral, out self: TimeDelta[SITimeUnit.DAYS, Self.dtype]
+    ):
+        """Construct a `Self.dtype`.
 
-        Parameters:
-            v_dtype: The dtype of the value.
+        Args:
+            days: The value for the `TimeDelta`.
+        """
+        comptime assert (
+            type_of(days)() >= 0
+        ), "A `TimeDelta`'s value is expected to be >= 0"
+        self.value = days
+
+    @always_inline
+    def __init__(
+        *,
+        hours: Scalar[Self.dtype],
+        out self: TimeDelta[SITimeUnit.HOURS, Self.dtype],
+    ):
+        """Construct a `TimeDelta`.
 
         Args:
             hours: The value for the `TimeDelta`.
         """
-        comptime assert v_dtype.is_unsigned()
         self.value = hours
 
     @always_inline
-    def __init__[
-        v_dtype: DType = Self.dtype
-    ](
-        *,
-        minutes: Scalar[v_dtype],
-        out self: TimeDelta[SITimeUnit.MINUTES, v_dtype],
-    ) where v_dtype.is_unsigned():
-        """Construct a `TimeDelta`.
+    def __init__(
+        *, hours: IntLiteral, out self: TimeDelta[SITimeUnit.HOURS, Self.dtype]
+    ):
+        """Construct a `Self.dtype`.
 
-        Parameters:
-            v_dtype: The dtype of the value.
+        Args:
+            hours: The value for the `TimeDelta`.
+        """
+        comptime assert (
+            type_of(hours)() >= 0
+        ), "A `TimeDelta`'s value is expected to be >= 0"
+        self.value = hours
+
+    @always_inline
+    def __init__(
+        *,
+        minutes: Scalar[Self.dtype],
+        out self: TimeDelta[SITimeUnit.MINUTES, Self.dtype],
+    ):
+        """Construct a `TimeDelta`.
 
         Args:
             minutes: The value for the `TimeDelta`.
         """
-        comptime assert v_dtype.is_unsigned()
         self.value = minutes
 
     @always_inline
-    def __init__[
-        v_dtype: DType = Self.dtype
-    ](
+    def __init__(
         *,
-        seconds: Scalar[v_dtype],
-        out self: TimeDelta[SITimeUnit.SECONDS, v_dtype],
-    ) where v_dtype.is_unsigned():
-        """Construct a `TimeDelta`.
+        minutes: IntLiteral,
+        out self: TimeDelta[SITimeUnit.MINUTES, Self.dtype],
+    ):
+        """Construct a `Self.dtype`.
 
-        Parameters:
-            v_dtype: The dtype of the value.
+        Args:
+            minutes: The value for the `TimeDelta`.
+        """
+        comptime assert (
+            type_of(minutes)() >= 0
+        ), "A `TimeDelta`'s value is expected to be >= 0"
+        self.value = minutes
+
+    @always_inline
+    def __init__(
+        *,
+        seconds: Scalar[Self.dtype],
+        out self: TimeDelta[SITimeUnit.SECONDS, Self.dtype],
+    ):
+        """Construct a `TimeDelta`.
 
         Args:
             seconds: The value for the `TimeDelta`.
         """
-        comptime assert v_dtype.is_unsigned()
         self.value = seconds
 
     @always_inline
-    def __init__[
-        v_dtype: DType = Self.dtype
-    ](
+    def __init__(
         *,
-        milliseconds: Scalar[v_dtype],
-        out self: TimeDelta[SITimeUnit.MILLISECONDS, v_dtype],
-    ) where v_dtype.is_unsigned():
-        """Construct a `TimeDelta`.
+        seconds: IntLiteral,
+        out self: TimeDelta[SITimeUnit.SECONDS, Self.dtype],
+    ):
+        """Construct a `Self.dtype`.
 
-        Parameters:
-            v_dtype: The dtype of the value.
+        Args:
+            seconds: The value for the `TimeDelta`.
+        """
+        comptime assert (
+            type_of(seconds)() >= 0
+        ), "A `TimeDelta`'s value is expected to be >= 0"
+        self.value = seconds
+
+    @always_inline
+    def __init__(
+        *,
+        milliseconds: Scalar[Self.dtype],
+        out self: TimeDelta[SITimeUnit.MILLISECONDS, Self.dtype],
+    ):
+        """Construct a `TimeDelta`.
 
         Args:
             milliseconds: The value for the `TimeDelta`.
         """
-        comptime assert v_dtype.is_unsigned()
         self.value = milliseconds
 
     @always_inline
-    def __init__[
-        v_dtype: DType = Self.dtype
-    ](
+    def __init__(
         *,
-        microseconds: Scalar[v_dtype],
-        out self: TimeDelta[SITimeUnit.MICROSECONDS, v_dtype],
-    ) where v_dtype.is_unsigned():
-        """Construct a `TimeDelta`.
+        milliseconds: IntLiteral,
+        out self: TimeDelta[SITimeUnit.MILLISECONDS, Self.dtype],
+    ):
+        """Construct a `Self.dtype`.
 
-        Parameters:
-            v_dtype: The dtype of the value.
+        Args:
+            milliseconds: The value for the `TimeDelta`.
+        """
+        comptime assert (
+            type_of(milliseconds)() >= 0
+        ), "A `TimeDelta`'s value is expected to be >= 0"
+        self.value = milliseconds
+
+    @always_inline
+    def __init__(
+        *,
+        microseconds: Scalar[Self.dtype],
+        out self: TimeDelta[SITimeUnit.MICROSECONDS, Self.dtype],
+    ):
+        """Construct a `TimeDelta`.
 
         Args:
             microseconds: The value for the `TimeDelta`.
         """
-        comptime assert v_dtype.is_unsigned()
         self.value = microseconds
 
     @always_inline
-    def __init__[
-        v_dtype: DType = Self.dtype
-    ](
+    def __init__(
         *,
-        nanoseconds: Scalar[v_dtype],
-        out self: TimeDelta[SITimeUnit.NANOSECONDS, v_dtype],
-    ) where v_dtype.is_unsigned():
-        """Construct a `TimeDelta`.
+        microseconds: IntLiteral,
+        out self: TimeDelta[SITimeUnit.MICROSECONDS, Self.dtype],
+    ):
+        """Construct a `Self.dtype`.
 
-        Parameters:
-            v_dtype: The dtype of the value.
+        Args:
+            microseconds: The value for the `TimeDelta`.
+        """
+        comptime assert (
+            type_of(microseconds)() >= 0
+        ), "A `TimeDelta`'s value is expected to be >= 0"
+        self.value = microseconds
+
+    @always_inline
+    def __init__(
+        *,
+        nanoseconds: Scalar[Self.dtype],
+        out self: TimeDelta[SITimeUnit.NANOSECONDS, Self.dtype],
+    ):
+        """Construct a `TimeDelta`.
 
         Args:
             nanoseconds: The value for the `TimeDelta`.
         """
-        comptime assert v_dtype.is_unsigned()
+        self.value = nanoseconds
+
+    @always_inline
+    def __init__(
+        *,
+        nanoseconds: IntLiteral,
+        out self: TimeDelta[SITimeUnit.NANOSECONDS, Self.dtype],
+    ):
+        """Construct a `Self.dtype`.
+
+        Args:
+            nanoseconds: The value for the `TimeDelta`.
+        """
+        comptime assert (
+            type_of(nanoseconds)() >= 0
+        ), "A `TimeDelta`'s value is expected to be >= 0"
         self.value = nanoseconds
 
     @always_inline
