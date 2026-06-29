@@ -5,7 +5,7 @@ on:
 
 jobs:
   test-linux:
-    name: Run tests
+    name: Run tests (Linux)
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout code
@@ -21,7 +21,7 @@ jobs:
         run: pixi run tests
 
   test-macos:
-    name: Run tests
+    name: Run tests (MacOS)
     runs-on: macos-14
     steps:
       - name: Checkout code

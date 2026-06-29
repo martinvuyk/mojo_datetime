@@ -453,12 +453,17 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
 
     comptime _leapsec_size: Int
     comptime _hashed_leapsec_array: InlineArray[UInt32, Self._leapsec_size]
-    comptime _include_leapsecs: Bool
-    """Whether to include leap seconds."""
+    comptime includes_leapsecs: Bool
+    """Whether the calendar includes leap seconds."""
     comptime _unix_epoch: _NaiveDateTime = _NaiveDateTime(
         1970, 1, 1, 0, 0, 0, 0, 0, 0
     )
     """The unix epoch (1970-01-01) expressed in the native calendar."""
+    comptime _is_gregorian_family: Bool
+    """Whether an implementation can safely assume that there are [x, 9999]
+    years [1, 12] months of [1, 31] days, [0, 23] hours, [0, 59] minutes,
+    [0, 60] seconds (with or without leaps), [0, 999] milliseconds, [0, 999]
+    microseconds, [0, 999] nanoseconds."""
 
     # fmt: off
     comptime _monthdays: SIMD[DType.uint8, 16] = [
@@ -499,7 +504,7 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
             The amount.
         """
 
-        comptime if Self._include_leapsecs:
+        comptime if Self.includes_leapsecs:
             if Self.is_leapsec(
                 {dt.year, dt.month, dt.day, dt.hour, dt.minute, 59}
             ):
@@ -603,7 +608,7 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
             Bool.
         """
 
-        comptime if not Self._include_leapsecs:
+        comptime if not Self.includes_leapsecs:
             return False
 
         if unlikely(
@@ -633,7 +638,7 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
             The amount.
         """
 
-        comptime if not Self._include_leapsecs:
+        comptime if not Self.includes_leapsecs:
             return 0
 
         if unlikely(dt.year < 1972):
@@ -942,7 +947,7 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
             _type_is_eq[Self, Other]()
             # and Self._hashed_leapsec_array == Other._hashed_leapsec_array
             and Self._leapsec_size == Other._leapsec_size
-            and Self._include_leapsecs == Other._include_leapsecs
+            and Self.includes_leapsecs == Other.includes_leapsecs
             and Self.max_year == Other.max_year
             and Self.max_typical_days_in_year == Other.max_typical_days_in_year
             and Self.max_possible_days_in_year
@@ -1004,7 +1009,9 @@ struct Gregorian[
 
     comptime _leapsec_size = Self.hashed_leapsec_array_.size
     comptime _hashed_leapsec_array = Self.hashed_leapsec_array_
-    comptime _include_leapsecs = Self.include_leapsecs_
+    comptime includes_leapsecs = Self.include_leapsecs_
+    """Whether the calendar includes leap seconds."""
+    comptime _is_gregorian_family = True
     comptime max_possible_second: UInt8 = 60 if Self.include_leapsecs_ else 59
     """Maximum possible value of seconds in a minute (with leaps)."""
     comptime min_year: UInt16 = Self.min_year_
@@ -1060,8 +1067,10 @@ struct ISOCalendar[
 
     comptime _leapsec_size = Self.hashed_leapsec_array_.size
     comptime _hashed_leapsec_array = Self.hashed_leapsec_array_
-    comptime _include_leapsecs = Self.include_leapsecs_
+    comptime includes_leapsecs = Self.include_leapsecs_
+    """Whether the calendar includes leap seconds."""
     comptime _min_year: UInt16 = Self.min_year_
+    comptime _is_gregorian_family = True
 
     comptime _greg = Gregorian[
         Self.include_leapsecs_, Self.min_year_, Self.hashed_leapsec_array_
