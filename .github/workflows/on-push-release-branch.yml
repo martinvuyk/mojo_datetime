@@ -2,7 +2,7 @@ name: Run on a push into a version branch
 
 on:
   push:
-    branches: [main, 0.26.2]
+    branches: [main, 0.26.2, 1.0.0b1, 1.0.0b2, 1.0.0b3]
     paths:
       - '**.mojo'
       - 'pixi.toml'
