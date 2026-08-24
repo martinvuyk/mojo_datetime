@@ -110,9 +110,9 @@ struct FormatCode(Equatable):
         comptime val = type_of(value)()
         comptime assert 1 <= val.byte_length() <= 2
         comptime if val.byte_length() == 1:
-            self.value = {value.ptr().unsafe_load[1](), 0}
+            self.value = {value.unsafe_ptr().unsafe_load[1](), 0}
         else:
-            self.value = value.ptr().unsafe_load[2]()
+            self.value = value.unsafe_ptr().unsafe_load[2]()
 
 
 # ===----------------------------------------------------------------------=== #
@@ -485,7 +485,7 @@ struct LibCLocale(DTLocale):
         var null_ptr = Self._ptr()
         var name = locale_name.as_c_string_slice()
         self._loc = external_call["newlocale", Self._ptr](
-            _LC_TIME_MASK, name.ptr(), null_ptr
+            _LC_TIME_MASK, name.unsafe_ptr(), null_ptr
         )
         if self._loc == null_ptr:
             raise Error(
