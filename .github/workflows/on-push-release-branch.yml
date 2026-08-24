@@ -7,6 +7,7 @@ on:
       - '**.mojo'
       - 'pixi.toml'
       - 'pixi.lock'
+  workflow_dispatch:
 
 permissions:
   contents: write
