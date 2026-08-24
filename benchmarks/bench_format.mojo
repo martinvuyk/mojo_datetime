@@ -38,13 +38,11 @@ comptime FIXED_DT = DateTime(2026, 4, 28, 15, 30, 45)
 # ===----------------------------------------------------------------------=== #
 
 
-@parameter
 def bench_write_iso(mut b: Bencher) raises:
     """ISO-8601 datetime with TZ designator: no locale-aware codes."""
     comptime fmt = IsoFormat.YYYY_MM_DD_T_HH_MM_SS_TZD
 
     @always_inline
-    @parameter
     def call_fn() raises:
         for _ in range(BATCH):
             var dt = black_box(FIXED_DT)
@@ -52,10 +50,9 @@ def bench_write_iso(mut b: Bencher) raises:
             dt.write_to[fmt](out)
             keep(out)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
 
 
-@parameter
 def bench_write_locale_short_native(mut b: Bencher) raises:
     """Short locale-aware format using the native English locale.
 
@@ -64,7 +61,6 @@ def bench_write_locale_short_native(mut b: Bencher) raises:
     comptime fmt = "%a %d %b %Y %H:%M:%S"
 
     @always_inline
-    @parameter
     def call_fn() raises:
         for _ in range(BATCH):
             var dt = black_box(FIXED_DT)
@@ -74,16 +70,14 @@ def bench_write_locale_short_native(mut b: Bencher) raises:
             )
             keep(out)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
 
 
-@parameter
 def bench_write_locale_long_native(mut b: Bencher) raises:
     """Long locale-aware format using the native English locale."""
     comptime fmt = "%A %d %B %Y %I:%M:%S %p"
 
     @always_inline
-    @parameter
     def call_fn() raises:
         for _ in range(BATCH):
             var dt = black_box(FIXED_DT)
@@ -93,55 +87,49 @@ def bench_write_locale_long_native(mut b: Bencher) raises:
             )
             keep(out)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
 
 
-@parameter
 def bench_write_locale_short_libc(mut b: Bencher) raises:
     """Short locale-aware format using the libc-backed locale."""
     comptime fmt = "%a %d %b %Y %H:%M:%S"
     var loc = LibCLocale("C")
 
     @always_inline
-    @parameter
-    def call_fn() raises:
+    def call_fn() raises {imm loc}:
         for _ in range(BATCH):
             var dt = black_box(FIXED_DT)
             var out = String()
             dt.write_to[fmt, LibCLocale](out, loc.copy())
             keep(out)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
     keep(loc)
 
 
-@parameter
 def bench_write_locale_long_libc(mut b: Bencher) raises:
     """Long locale-aware format using the libc-backed locale."""
     comptime fmt = "%A %d %B %Y %I:%M:%S %p"
     var loc = LibCLocale("C")
 
     @always_inline
-    @parameter
-    def call_fn() raises:
+    def call_fn() raises {imm loc}:
         for _ in range(BATCH):
             var dt = black_box(FIXED_DT)
             var out = String()
             dt.write_to[fmt, LibCLocale](out, loc.copy())
             keep(out)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
     keep(loc)
 
 
-@parameter
 def bench_write_locale_c_recursion_native(mut b: Bencher) raises:
     """`%c` triggers `datetime_fmt[calendar]()` and recurses through several
     locale-aware codes."""
     comptime fmt = "%c"
 
     @always_inline
-    @parameter
     def call_fn() raises:
         for _ in range(BATCH):
             var dt = black_box(FIXED_DT)
@@ -151,10 +139,9 @@ def bench_write_locale_c_recursion_native(mut b: Bencher) raises:
             )
             keep(out)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
 
 
-@parameter
 def bench_write_locale_c_recursion_libc(mut b: Bencher) raises:
     """`%c` triggers `datetime_fmt[calendar]()` and recurses through several
     locale-aware codes."""
@@ -162,15 +149,14 @@ def bench_write_locale_c_recursion_libc(mut b: Bencher) raises:
     var loc = LibCLocale("C")
 
     @always_inline
-    @parameter
-    def call_fn() raises:
+    def call_fn() raises {imm loc}:
         for _ in range(BATCH):
             var dt = black_box(FIXED_DT)
             var out = String()
             dt.write_to[fmt, LibCLocale](out, loc.copy())
             keep(out)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
 
 
 # ===----------------------------------------------------------------------=== #
@@ -178,33 +164,29 @@ def bench_write_locale_c_recursion_libc(mut b: Bencher) raises:
 # ===----------------------------------------------------------------------=== #
 
 
-@parameter
 def bench_parse_iso(mut b: Bencher) raises:
     """ISO-8601 parse: no locale-aware codes."""
     comptime fmt = IsoFormat.YYYY_MM_DD_T_HH_MM_SS_TZD
     var src = "2026-04-28T15:30:45+00:00"
 
     @always_inline
-    @parameter
-    def call_fn() raises:
+    def call_fn() raises {imm src}:
         for _ in range(BATCH):
             var s = black_box(src)
             var dt = DateTime.parse[fmt](s)
             keep(dt)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
     keep(src)
 
 
-@parameter
 def bench_parse_locale_short_native(mut b: Bencher) raises:
     """Short locale-aware parse using the native English locale."""
     comptime fmt = "%a %d %b %Y %H:%M:%S"
     var src = "Tue 28 Apr 2026 15:30:45"
 
     @always_inline
-    @parameter
-    def call_fn() raises:
+    def call_fn() raises {imm src}:
         for _ in range(BATCH):
             var s = black_box(src)
             var dt = DateTime.parse[fmt, GenericEnglishDTLocale](
@@ -212,19 +194,17 @@ def bench_parse_locale_short_native(mut b: Bencher) raises:
             )
             keep(dt)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
     keep(src)
 
 
-@parameter
 def bench_parse_locale_long_native(mut b: Bencher) raises:
     """Long locale-aware parse using the native English locale."""
     comptime fmt = "%A %d %B %Y %I:%M:%S %p"
     var src = "Tuesday 28 April 2026 03:30:45 PM"
 
     @always_inline
-    @parameter
-    def call_fn() raises:
+    def call_fn() raises {imm src}:
         for _ in range(BATCH):
             var s = black_box(src)
             var dt = DateTime.parse[fmt, GenericEnglishDTLocale](
@@ -232,11 +212,10 @@ def bench_parse_locale_long_native(mut b: Bencher) raises:
             )
             keep(dt)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
     keep(src)
 
 
-@parameter
 def bench_parse_locale_short_libc(mut b: Bencher) raises:
     """Short locale-aware parse using the libc-backed locale."""
     comptime fmt = "%a %d %b %Y %H:%M:%S"
@@ -244,19 +223,17 @@ def bench_parse_locale_short_libc(mut b: Bencher) raises:
     var loc = LibCLocale("C")
 
     @always_inline
-    @parameter
-    def call_fn() raises:
+    def call_fn() raises {imm src, imm loc}:
         for _ in range(BATCH):
             var s = black_box(src)
             var dt = DateTime.parse[fmt, LibCLocale](s, loc.copy())
             keep(dt)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
     keep(src)
     keep(loc)
 
 
-@parameter
 def bench_parse_locale_long_libc(mut b: Bencher) raises:
     """Long locale-aware parse using the libc-backed locale."""
     comptime fmt = "%A %d %B %Y %I:%M:%S %p"
@@ -264,19 +241,17 @@ def bench_parse_locale_long_libc(mut b: Bencher) raises:
     var loc = LibCLocale("C")
 
     @always_inline
-    @parameter
-    def call_fn() raises:
+    def call_fn() raises {imm src, imm loc}:
         for _ in range(BATCH):
             var s = black_box(src)
             var dt = DateTime.parse[fmt, LibCLocale](s, loc.copy())
             keep(dt)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
     keep(src)
     keep(loc)
 
 
-@parameter
 def bench_parse_locale_c_recursion_native(mut b: Bencher) raises:
     """`%c` triggers `datetime_fmt[calendar]()` and recurses through several
     locale-aware codes."""
@@ -284,8 +259,7 @@ def bench_parse_locale_c_recursion_native(mut b: Bencher) raises:
     var src = "Tue, 28 Apr 2026 15:30:00 +0000"
 
     @always_inline
-    @parameter
-    def call_fn() raises:
+    def call_fn() raises {imm src}:
         for _ in range(BATCH):
             var s = black_box(src)
             var dt = DateTime.parse[fmt, GenericEnglishDTLocale](
@@ -293,11 +267,10 @@ def bench_parse_locale_c_recursion_native(mut b: Bencher) raises:
             )
             keep(dt)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
     keep(src)
 
 
-@parameter
 def bench_parse_locale_c_recursion_libc(mut b: Bencher) raises:
     """`%c` triggers `datetime_fmt[calendar]()` and recurses through several
     locale-aware codes."""
@@ -306,14 +279,13 @@ def bench_parse_locale_c_recursion_libc(mut b: Bencher) raises:
     var loc = LibCLocale("C")
 
     @always_inline
-    @parameter
-    def call_fn() raises:
+    def call_fn() raises {imm src, imm loc}:
         for _ in range(BATCH):
             var s = black_box(src)
             var dt = DateTime.parse[fmt, LibCLocale](s, loc.copy())
             keep(dt)
 
-    b.iter[call_fn]()
+    b.iter(call_fn)
     keep(src)
     keep(loc)
 
@@ -328,44 +300,48 @@ def main() raises:
         BenchConfig(num_repetitions=1, num_warmup_iters=100, max_iters=100)
     )
 
-    m.bench_function[bench_write_iso](BenchId("write_iso"))
-    m.bench_function[bench_write_locale_short_native](
-        BenchId("write_locale_short_native")
+    m.bench_function(bench_write_iso, BenchId("write_iso"))
+    m.bench_function(
+        bench_write_locale_short_native, BenchId("write_locale_short_native")
     )
-    m.bench_function[bench_write_locale_long_native](
-        BenchId("write_locale_long_native")
+    m.bench_function(
+        bench_write_locale_long_native, BenchId("write_locale_long_native")
     )
-    m.bench_function[bench_write_locale_short_libc](
-        BenchId("write_locale_short_libc")
+    m.bench_function(
+        bench_write_locale_short_libc, BenchId("write_locale_short_libc")
     )
-    m.bench_function[bench_write_locale_long_libc](
-        BenchId("write_locale_long_libc")
+    m.bench_function(
+        bench_write_locale_long_libc, BenchId("write_locale_long_libc")
     )
-    m.bench_function[bench_write_locale_c_recursion_native](
-        BenchId("write_locale_c_recursion_native")
+    m.bench_function(
+        bench_write_locale_c_recursion_native,
+        BenchId("write_locale_c_recursion_native"),
     )
-    m.bench_function[bench_write_locale_c_recursion_libc](
-        BenchId("write_locale_c_recursion_libc")
+    m.bench_function(
+        bench_write_locale_c_recursion_libc,
+        BenchId("write_locale_c_recursion_libc"),
     )
 
-    m.bench_function[bench_parse_iso](BenchId("parse_iso"))
-    m.bench_function[bench_parse_locale_short_native](
-        BenchId("parse_locale_short_native")
+    m.bench_function(bench_parse_iso, BenchId("parse_iso"))
+    m.bench_function(
+        bench_parse_locale_short_native, BenchId("parse_locale_short_native")
     )
-    m.bench_function[bench_parse_locale_long_native](
-        BenchId("parse_locale_long_native")
+    m.bench_function(
+        bench_parse_locale_long_native, BenchId("parse_locale_long_native")
     )
-    m.bench_function[bench_parse_locale_short_libc](
-        BenchId("parse_locale_short_libc")
+    m.bench_function(
+        bench_parse_locale_short_libc, BenchId("parse_locale_short_libc")
     )
-    m.bench_function[bench_parse_locale_long_libc](
-        BenchId("parse_locale_long_libc")
+    m.bench_function(
+        bench_parse_locale_long_libc, BenchId("parse_locale_long_libc")
     )
-    m.bench_function[bench_parse_locale_c_recursion_native](
-        BenchId("parse_locale_c_recursion_native")
+    m.bench_function(
+        bench_parse_locale_c_recursion_native,
+        BenchId("parse_locale_c_recursion_native"),
     )
-    m.bench_function[bench_parse_locale_c_recursion_libc](
-        BenchId("parse_locale_c_recursion_libc")
+    m.bench_function(
+        bench_parse_locale_c_recursion_libc,
+        BenchId("parse_locale_c_recursion_libc"),
     )
 
     print(m)

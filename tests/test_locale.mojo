@@ -54,7 +54,7 @@ comptime parse[fmt: String] = _parse[
 
 
 def test_dt_spec_iterator() raises:
-    comptime DTIter = _DTSpecIterator[StaticConstantOrigin]
+    comptime DTIter = _DTSpecIterator[ImmStaticOrigin]
 
     var it = DTIter("hi!")
     assert_equal(next(it), DTIter.Element(False, "hi!"))
@@ -198,35 +198,35 @@ def test_parse_write_iso() raises:
     var iso_str = "2024-06-16T18:51:20+00:00"
     comptime fmt1 = IsoFormat.YYYY_MM_DD_T_HH_MM_SS_TZD
     assert_equal(ref1, parse[fmt1](iso_str))
-    res = String(capacity=iso_str.byte_length())
+    var res = String(capacity_bytes=iso_str.byte_length())
     _write_to[fmt1, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(iso_str, res)
 
     iso_str = "2024-06-16 18:51:20"
     comptime fmt2 = IsoFormat.YYYY_MM_DD___HH_MM_SS
     assert_equal(ref1, parse[fmt2](iso_str))
-    res = String(capacity=iso_str.byte_length())
+    res = String(capacity_bytes=iso_str.byte_length())
     _write_to[fmt2, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(iso_str, res)
 
     iso_str = "2024-06-16T18:51:20"
     comptime fmt3 = IsoFormat.YYYY_MM_DD_T_HH_MM_SS
     assert_equal(ref1, parse[fmt3](iso_str))
-    res = String(capacity=iso_str.byte_length())
+    res = String(capacity_bytes=iso_str.byte_length())
     _write_to[fmt3, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(iso_str, res)
 
     iso_str = "20240616185120+0000"
     comptime fmt4 = IsoFormat.YYYYMMDDHHMMSSTZD
     assert_equal(ref1, parse[fmt4](iso_str))
-    res = String(capacity=iso_str.byte_length())
+    res = String(capacity_bytes=iso_str.byte_length())
     _write_to[fmt4, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(iso_str, res)
 
     iso_str = "20240616185120"
     comptime fmt5 = IsoFormat.YYYYMMDDHHMMSS
     assert_equal(ref1, parse[fmt5](iso_str))
-    res = String(capacity=iso_str.byte_length())
+    res = String(capacity_bytes=iso_str.byte_length())
     _write_to[fmt5, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(iso_str, res)
 
@@ -234,14 +234,14 @@ def test_parse_write_iso() raises:
     iso_str = "2024-06-16"
     comptime fmt6 = IsoFormat.YYYY_MM_DD
     assert_equal(ref1, parse[fmt6](iso_str))
-    res = String(capacity=iso_str.byte_length())
+    res = String(capacity_bytes=iso_str.byte_length())
     _write_to[fmt6, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(iso_str, res)
 
     iso_str = "20240616"
     comptime fmt7 = IsoFormat.YYYYMMDD
     assert_equal(ref1, parse[fmt7](iso_str))
-    res = String(capacity=iso_str.byte_length())
+    res = String(capacity_bytes=iso_str.byte_length())
     _write_to[fmt7, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(iso_str, res)
 
@@ -250,20 +250,20 @@ def test_parse_write_iso() raises:
     iso_str = "18:51:20"
     comptime fmt8 = IsoFormat.HH_MM_SS
     assert_equal(ref2, parse[fmt8](iso_str))
-    res = String(capacity=iso_str.byte_length())
+    res = String(capacity_bytes=iso_str.byte_length())
     _write_to[fmt8, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(iso_str, res)
-    res = String(capacity=iso_str.byte_length())
+    res = String(capacity_bytes=iso_str.byte_length())
     _write_to[fmt8, "", GenericEnglishDTLocale](res, ref2, {})
     assert_equal(iso_str, res)
 
     iso_str = "185120"
     comptime fmt9 = IsoFormat.HHMMSS
     assert_equal(ref2, parse[fmt9](iso_str))
-    res = String(capacity=iso_str.byte_length())
+    res = String(capacity_bytes=iso_str.byte_length())
     _write_to[fmt9, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(iso_str, res)
-    res = String(capacity=iso_str.byte_length())
+    res = String(capacity_bytes=iso_str.byte_length())
     _write_to[fmt9, "", GenericEnglishDTLocale](res, ref2, {})
     assert_equal(iso_str, res)
 
@@ -272,7 +272,7 @@ def test_parse_write_to_emojii() raises:
     var ref1 = _TzNaiveDateTime[PythonCalendar]({9, 6, 1})
     comptime fmt1 = "mojo: %Y🔥%m🤯%d"
     var res_str = "mojo: 0009🔥06🤯01"
-    var res = String(capacity=res_str.byte_length())
+    var res = String(capacity_bytes=res_str.byte_length())
     _write_to[fmt1, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(res_str, res)
     assert_equal(ref1, parse[fmt1](res_str))
@@ -282,7 +282,7 @@ def test_parse_write_to_microseconds() raises:
     var ref1 = _TzNaiveDateTime[PythonCalendar]({2024, 9, 9, 9, 9, 9, 9, 9})
     comptime fmt1 = "%Y-%m-%d %H:%M:%S.%f"
     var res_str = "2024-09-09 09:09:09.009009"
-    var res = String(capacity=res_str.byte_length())
+    var res = String(capacity_bytes=res_str.byte_length())
     _write_to[fmt1, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(res_str, res)
     assert_equal(ref1, parse[fmt1](res_str))
@@ -293,8 +293,8 @@ def test_parse_write_to_yyyy_ddd() raises:
 
     # test normal year
     var ref1 = _TzNaiveDateTime[PythonCalendar]({2025, 9, 9, 9, 9, 9, 9, 9})
-    res_str = "2025-252 09:09:09.009009"
-    res = String(capacity=res_str.byte_length())
+    var res_str = "2025-252 09:09:09.009009"
+    var res = String(capacity_bytes=res_str.byte_length())
     _write_to[fmt1, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(res_str, res)
     assert_equal(ref1, parse[fmt1](res_str))
@@ -302,7 +302,7 @@ def test_parse_write_to_yyyy_ddd() raises:
     # test leap year
     ref1 = _TzNaiveDateTime[PythonCalendar]({2024, 9, 9, 9, 9, 9, 9, 9})
     res_str = "2024-253 09:09:09.009009"
-    res = String(capacity=res_str.byte_length())
+    res = String(capacity_bytes=res_str.byte_length())
     _write_to[fmt1, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(res_str, res)
     assert_equal(ref1, parse[fmt1](res_str))
@@ -310,7 +310,7 @@ def test_parse_write_to_yyyy_ddd() raises:
     # test leap year december
     ref1 = _TzNaiveDateTime[PythonCalendar]({2024, 12, 31, 9, 9, 9, 9, 9})
     res_str = "2024-366 09:09:09.009009"
-    res = String(capacity=res_str.byte_length())
+    res = String(capacity_bytes=res_str.byte_length())
     _write_to[fmt1, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(res_str, res)
     assert_equal(ref1, parse[fmt1](res_str))
@@ -318,7 +318,7 @@ def test_parse_write_to_yyyy_ddd() raises:
     # test start of calendar
     ref1 = _TzNaiveDateTime[PythonCalendar]({1, 1, 1, 9, 9, 9, 9, 9})
     res_str = "0001-001 09:09:09.009009"
-    res = String(capacity=res_str.byte_length())
+    res = String(capacity_bytes=res_str.byte_length())
     _write_to[fmt1, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(res_str, res)
     assert_equal(ref1, parse[fmt1](res_str))
@@ -326,7 +326,7 @@ def test_parse_write_to_yyyy_ddd() raises:
     # test end of calendar
     ref1 = _TzNaiveDateTime[PythonCalendar]({9999, 12, 31, 9, 9, 9, 9, 9})
     res_str = "9999-365 09:09:09.009009"
-    res = String(capacity=res_str.byte_length())
+    res = String(capacity_bytes=res_str.byte_length())
     _write_to[fmt1, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(res_str, res)
     assert_equal(ref1, parse[fmt1](res_str))
@@ -337,7 +337,7 @@ def test_parse_write_to_am_pm() raises:
 
     var ref1 = _TzNaiveDateTime[PythonCalendar]({2024, 9, 9, 1, 1})
     var res_str = "2024-09-09 01:01AM"
-    var res = String(capacity=res_str.byte_length())
+    var res = String(capacity_bytes=res_str.byte_length())
     _write_to[fmt1, "", GenericEnglishDTLocale](res, ref1, {})
     assert_equal(res_str, res)
     assert_equal(ref1, parse[fmt1](res_str))
@@ -349,7 +349,7 @@ def test_parse_write_to_am_pm() raises:
                     h + UInt8(12 if is_pm else 0)
                 )
                 var ref1 = _TzNaiveDateTime[PythonCalendar]({2024, 9, 9, h2, m})
-                var res = String(capacity=res_str.byte_length())
+                var res = String(capacity_bytes=res_str.byte_length())
                 _write_to[fmt1, "", GenericEnglishDTLocale](res, ref1, {})
                 var should_be = String(
                     "2024-09-09 ",
@@ -435,7 +435,7 @@ def test_libc_c_locale() raises:
 
         _write_to[fmt_short, "", LibCLocale](res, dt, {}, loc.copy())
         assert_equal(short_res, res)
-        parsed = _parse[
+        var parsed = _parse[
             fmt_short, PythonCalendar, gregorian_zoneinfo, LibCLocale
         ](short_res, loc.copy())
         assert_equal(dt, parsed)

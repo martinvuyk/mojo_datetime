@@ -14,7 +14,7 @@
 
 from std.os import abort
 from std.utils import Variant
-from std.sys.intrinsics import likely, unlikely, _type_is_eq
+from std.sys.intrinsics import likely, unlikely
 
 
 comptime PythonCalendar = Gregorian[]
@@ -326,7 +326,7 @@ struct Leapsec(TrivialRegisterPassable):
 
 
 # TODO: need to programatically update this list every january
-comptime gregorian_leapsecs: InlineArray[UInt32, 27] = [
+comptime gregorian_leapsecs: Array[UInt32, 27] = [
     Leapsec(1972, 6, 30).hash(),
     Leapsec(1972, 12, 31).hash(),
     Leapsec(1973, 12, 31).hash(),
@@ -451,8 +451,8 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
     comptime SUNDAY: UInt8 = 6
     """Raw Sunday value for this calendar."""
 
-    comptime _leapsec_size: Int
-    comptime _hashed_leapsec_array: InlineArray[UInt32, Self._leapsec_size]
+    comptime _leapsec_length: Int
+    comptime _hashed_leapsec_array: Array[UInt32, Self._leapsec_length]
     comptime includes_leapsecs: Bool
     """Whether the calendar includes leap seconds."""
     comptime _unix_epoch: _NaiveDateTime = _NaiveDateTime(
@@ -620,7 +620,7 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
         ):
             var h = Leapsec(dt).hash()
 
-            comptime for i in range(Self._leapsec_size):
+            comptime for i in range(Self._leapsec_length):
                 comptime leapsec = Self._hashed_leapsec_array[i]
                 if h == leapsec:
                     return True
@@ -643,7 +643,7 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
 
         if unlikely(dt.year < 1972):
             return 0
-        comptime size = UInt32(Self._leapsec_size)
+        comptime size = UInt32(Self._leapsec_length)
         var h = Self.hash[CalendarHashes.UINT64](dt)
         comptime last = Leapsec.from_hash(Self._hashed_leapsec_array[size - 1])
         comptime last_h = Self.hash[CalendarHashes.UINT64](
@@ -944,9 +944,9 @@ trait Calendar(Defaultable, ImplicitlyCopyable, Movable, Writable):
         """
         comptime Other = type_of(other)
         comptime res = (
-            _type_is_eq[Self, Other]()
+            Self == Other
             # and Self._hashed_leapsec_array == Other._hashed_leapsec_array
-            and Self._leapsec_size == Other._leapsec_size
+            and Self._leapsec_length == Other._leapsec_length
             and Self.includes_leapsecs == Other.includes_leapsecs
             and Self.max_year == Other.max_year
             and Self.max_typical_days_in_year == Other.max_typical_days_in_year
@@ -994,9 +994,7 @@ struct Gregorian[
     //,
     include_leapsecs_: Bool = True,
     min_year_: UInt16 = 1,
-    hashed_leapsec_array_: InlineArray[
-        UInt32, leapsec_size_
-    ] = gregorian_leapsecs,
+    hashed_leapsec_array_: Array[UInt32, leapsec_size_] = gregorian_leapsecs,
 ](Calendar, TrivialRegisterPassable):
     """`Gregorian` Calendar.
 
@@ -1007,7 +1005,7 @@ struct Gregorian[
         hashed_leapsec_array_: The array with the hashed leap seconds.
     """
 
-    comptime _leapsec_size = Self.hashed_leapsec_array_.size
+    comptime _leapsec_length = Self.hashed_leapsec_array_.length
     comptime _hashed_leapsec_array = Self.hashed_leapsec_array_
     comptime includes_leapsecs = Self.include_leapsecs_
     """Whether the calendar includes leap seconds."""
@@ -1032,9 +1030,7 @@ struct ISOCalendar[
     //,
     include_leapsecs_: Bool = True,
     min_year_: UInt16 = 1,
-    hashed_leapsec_array_: InlineArray[
-        UInt32, leapsec_size_
-    ] = gregorian_leapsecs,
+    hashed_leapsec_array_: Array[UInt32, leapsec_size_] = gregorian_leapsecs,
 ](Calendar, TrivialRegisterPassable):
     """An ISO-8601 Calendar.
 
@@ -1065,7 +1061,7 @@ struct ISOCalendar[
     comptime SUNDAY: UInt8 = 7
     """Raw Sunday value for this calendar."""
 
-    comptime _leapsec_size = Self.hashed_leapsec_array_.size
+    comptime _leapsec_length = Self.hashed_leapsec_array_.length
     comptime _hashed_leapsec_array = Self.hashed_leapsec_array_
     comptime includes_leapsecs = Self.include_leapsecs_
     """Whether the calendar includes leap seconds."""

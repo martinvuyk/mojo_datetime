@@ -511,13 +511,13 @@ struct DateTime[
 
         comptime if Self.timezone == tz:
             return rebind[DateTime[tz, Self.calendar]](self)
-        offset = self.timezone.zone_info.offset_at_local_time(
+        var offset = self.timezone.zone_info.offset_at_local_time(
             self._to_tz_naive_datetime()
         )
         var utc_time = offset.local_to_utc(self._to_tz_naive_datetime())
         comptime if tz == TZ_UTC:
             return {utc_time}
-        new_offset = tz.zone_info.offset_at_utc_time(utc_time)
+        var new_offset = tz.zone_info.offset_at_utc_time(utc_time)
         return {new_offset.utc_to_local(utc_time)}
 
     @always_inline
@@ -839,7 +839,7 @@ struct DateTime[
         Returns:
             The amount.
         """
-        dt = self.to_utc()
+        var dt = self.to_utc()
         return dt.calendar.leapsecs_since_epoch(dt._to_naive_datetime())
 
     @always_inline

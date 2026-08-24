@@ -11,7 +11,8 @@
 # limitations under the License.
 # ===----------------------------------------------------------------------=== #
 
-from .calendar import Calendar, _NaiveDateTime
+from .calendar import Calendar, SITimeUnit, _NaiveDateTime
+from .timedelta import TimeDelta
 
 
 # FIXME(https://github.com/modular/modular/issues/6460): make this TrivialRegisterPassable

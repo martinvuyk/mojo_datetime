@@ -43,13 +43,15 @@ comptime tz1_ = TimeZone("Etc/UTC-1")
 def test_add() raises:
     # using python and unix calendar should have no difference in results
     # test february leapyear
-    result = (
+    var result = (
         DateTime[tz_0_, pycal](2024, 2, 29) + TimeDelta(days=1)
     ).to_calendar[unixcal]()
-    offset_0 = DateTime[tz_0_, unixcal](2024, 3, 1)
-    offset_p_1 = DateTime[tz_1, unixcal](2024, 3, 1, hour=1)
-    offset_n_1 = DateTime[tz1_, unixcal](2024, 2, 29, hour=23)
-    add_seconds = DateTime[tz_0_, unixcal](2024, 2, 29).add(seconds=24 * 3600)
+    var offset_0 = DateTime[tz_0_, unixcal](2024, 3, 1)
+    var offset_p_1 = DateTime[tz_1, unixcal](2024, 3, 1, hour=1)
+    var offset_n_1 = DateTime[tz1_, unixcal](2024, 2, 29, hour=23)
+    var add_seconds = DateTime[tz_0_, unixcal](2024, 2, 29).add(
+        seconds=24 * 3600
+    )
     assert_equal(result, offset_0.to_utc())
     assert_equal(result, offset_p_1.to_utc())
     assert_equal(result, offset_n_1.to_utc())
@@ -103,7 +105,7 @@ def test_add() raises:
     offset_0 = DateTime[tz_0_, unixcal](2025, 1, 1)
     offset_p_1 = DateTime[tz_1, unixcal](2025, 1, 1, hour=1)
     offset_n_1 = DateTime[tz1_, unixcal](2024, 12, 31, hour=23)
-    add_elements = DateTime[tz_1, unixcal](2022, 6, 1, hour=1).add(
+    var add_elements = DateTime[tz_1, unixcal](2022, 6, 1, hour=1).add(
         years=2, months=6, days=31
     )
     assert_equal(result, offset_0.to_utc())
@@ -112,7 +114,7 @@ def test_add() raises:
     assert_equal(result, add_elements.to_utc())
 
     # test positive overflow pycal
-    result_py = DateTime[tz_0_, pycal](9999, 12, 31) + TimeDelta(days=1)
+    var result_py = DateTime[tz_0_, pycal](9999, 12, 31) + TimeDelta(days=1)
     assert_equal(result_py, DateTime[tz_0_, pycal](1, 1, 1).to_utc())
     assert_equal(result_py, DateTime[tz_1, pycal](1, 1, 1, hour=1).to_utc())
     assert_equal(
@@ -138,13 +140,13 @@ def test_add() raises:
 def test_subtract() raises:
     # using python and unix calendar should have no difference in results
     # test february leapyear
-    result = (
+    var result = (
         DateTime[tz_0_, pycal](2024, 3, 1) - TimeDelta(days=1)
     ).to_calendar[unixcal]()
-    offset_0 = DateTime[tz_0_, unixcal](2024, 2, 29)
-    offset_p_1 = DateTime[tz_1, unixcal](2024, 2, 29, hour=1)
-    offset_n_1 = DateTime[tz1_, unixcal](2024, 2, 28, hour=23)
-    sub_seconds = DateTime[tz_0_, unixcal](2024, 3, 1).subtract(days=1)
+    var offset_0 = DateTime[tz_0_, unixcal](2024, 2, 29)
+    var offset_p_1 = DateTime[tz_1, unixcal](2024, 2, 29, hour=1)
+    var offset_n_1 = DateTime[tz1_, unixcal](2024, 2, 28, hour=23)
+    var sub_seconds = DateTime[tz_0_, unixcal](2024, 3, 1).subtract(days=1)
     assert_equal(result, offset_0.to_utc())
     assert_equal(result, offset_p_1.to_utc())
     assert_equal(result, offset_n_1.to_utc())
@@ -198,7 +200,7 @@ def test_subtract() raises:
     offset_0 = DateTime[tz_0_, unixcal](2022, 6, 1)
     offset_p_1 = DateTime[tz_1, unixcal](2022, 6, 1, hour=1)
     offset_n_1 = DateTime[tz1_, unixcal](2022, 5, 31, hour=23)
-    sub_elements = DateTime[tz_1, unixcal](2025, 1, 1, hour=1).subtract(
+    var sub_elements = DateTime[tz_1, unixcal](2025, 1, 1, hour=1).subtract(
         years=2, months=6, days=31
     )
     assert_equal(result, offset_0.to_utc())
@@ -207,7 +209,7 @@ def test_subtract() raises:
     assert_equal(result, sub_elements.to_utc())
 
     # test negative overflow pycal
-    result_py = DateTime[tz_0_, pycal](1, 1, 1) - TimeDelta(days=1)
+    var result_py = DateTime[tz_0_, pycal](1, 1, 1) - TimeDelta(days=1)
     assert_equal(result_py, DateTime[tz_0_, pycal](9999, 12, 31).to_utc())
     assert_equal(
         result_py, DateTime[tz_1, pycal](9999, 12, 31, hour=1).to_utc()
@@ -249,7 +251,7 @@ def test_logic() raises:
 
 def test_bitwise() raises:
     # using python and unix calendar should have no difference in results
-    ref1 = DateTime[tz_0_, pycal](1970, 1, 1).hash()
+    var ref1 = DateTime[tz_0_, pycal](1970, 1, 1).hash()
     assert_true(ref1 ^ DateTime[tz_0_, unixcal](1970, 1, 1).hash() == 0)
     assert_true(ref1 ^ DateTime[tz_1, unixcal](1970, 1, 1).hash() == 0)
     assert_true(ref1 ^ DateTime[tz1_, pycal](1969, 12, 31).hash() != 0)
@@ -262,9 +264,9 @@ def test_bitwise() raises:
 
 
 def test_hash() raises:
-    ref1 = DateTime[tz_0_, pycal](1970, 1, 1)
+    var ref1 = DateTime[tz_0_, pycal](1970, 1, 1)
     assert_equal(ref1, DateTime[tz_0_, pycal].from_hash(ref1.hash()))
-    ref2 = DateTime[tz_0_, unixcal](1970, 1, 1)
+    var ref2 = DateTime[tz_0_, unixcal](1970, 1, 1)
     assert_equal(ref2, DateTime[tz_0_, unixcal].from_hash(ref2.hash()))
     assert_equal(ref1.hash(), ref2.hash())
 

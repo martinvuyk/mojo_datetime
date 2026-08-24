@@ -40,7 +40,7 @@ def test_calendar_hashes() raises:
     comptime calh8 = CalendarHashes.UINT8
 
     comptime greg = Gregorian[]
-    d = _NaiveDateTime(9999, 12, 31, 23, 59, 59, 999, 999, 999)
+    var d = _NaiveDateTime(9999, 12, 31, 23, 59, 59, 999, 999, 999)
     assert_not_equal(d, greg.from_hash(greg.hash[calh64](d)))
     d.n_second = 0
     assert_equal(d, greg.from_hash(greg.hash[calh64](d)))
@@ -61,8 +61,8 @@ def test_calendar_hashes() raises:
 def test_python_calendar() raises:
     comptime cal = PythonCalendar
 
-    dt_0 = _NaiveDateTime(2024, 12, 31, 3, 4, 5, 6, 7, 8)
-    dt_1 = _NaiveDateTime(2025, 1, 1, 3, 4, 5, 6, 7, 8)
+    var dt_0 = _NaiveDateTime(2024, 12, 31, 3, 4, 5, 6, 7, 8)
+    var dt_1 = _NaiveDateTime(2025, 1, 1, 3, 4, 5, 6, 7, 8)
     assert_equal(cal.leapdays_since_epoch(dt_0), cal.leapdays_since_epoch(dt_1))
     assert_equal(cal.days_since_epoch(dt_0), cal.days_since_epoch(dt_1) - 1)
 
@@ -131,8 +131,8 @@ def test_python_calendar() raises:
             {1, 1, 1, 0, 2, 0, 0, 0, 0}
         ),
     )
-    d1 = cal.to_delta_since_epoch[SITimeUnit.SECONDS]({2024, 1, 1, 0, 2, 0})
-    d2 = cal.to_delta_since_epoch[SITimeUnit.SECONDS]({2024, 1, 1, 0, 0, 0})
+    var d1 = cal.to_delta_since_epoch[SITimeUnit.SECONDS]({2024, 1, 1, 0, 2, 0})
+    var d2 = cal.to_delta_since_epoch[SITimeUnit.SECONDS]({2024, 1, 1, 0, 0, 0})
     assert_equal(120, Int(d1 - d2))
     d1 = cal.to_delta_since_epoch[SITimeUnit.MILLISECONDS](
         {2024, 1, 1, 0, 2, 0, 0}
@@ -202,8 +202,8 @@ def test_python_calendar() raises:
 def test_gregorian_utc_calendar() raises:
     comptime cal = UTCCalendar
 
-    dt_0 = _NaiveDateTime(2024, 12, 31, 3, 4, 5, 6, 7, 8)
-    dt_1 = _NaiveDateTime(2025, 1, 1, 3, 4, 5, 6, 7, 8)
+    var dt_0 = _NaiveDateTime(2024, 12, 31, 3, 4, 5, 6, 7, 8)
+    var dt_1 = _NaiveDateTime(2025, 1, 1, 3, 4, 5, 6, 7, 8)
     assert_equal(cal.leapdays_since_epoch(dt_0), cal.leapdays_since_epoch(dt_1))
     assert_equal(cal.days_since_epoch(dt_0), cal.days_since_epoch(dt_1) - 1)
 
@@ -234,8 +234,8 @@ def test_gregorian_utc_calendar() raises:
             {1970, 1, 1, 0, 2, 0, 0, 0, 0}
         ),
     )
-    d1 = cal.to_delta_since_epoch[SITimeUnit.SECONDS]({2024, 1, 1, 0, 2, 0})
-    d2 = cal.to_delta_since_epoch[SITimeUnit.SECONDS]({2024, 1, 1, 0, 0, 0})
+    var d1 = cal.to_delta_since_epoch[SITimeUnit.SECONDS]({2024, 1, 1, 0, 2, 0})
+    var d2 = cal.to_delta_since_epoch[SITimeUnit.SECONDS]({2024, 1, 1, 0, 0, 0})
     assert_equal(UInt64(120), d1 - d2)
     d1 = cal.to_delta_since_epoch[SITimeUnit.MILLISECONDS](
         {2024, 1, 1, 0, 2, 0, 0}
@@ -336,8 +336,8 @@ def test_utcfast_calendar() raises:
             {1970, 1, 1, 0, 2, 0, 0, 0, 0}
         ),
     )
-    d1 = cal.to_delta_since_epoch[SITimeUnit.SECONDS]({2024, 1, 1, 0, 2, 0})
-    d2 = cal.to_delta_since_epoch[SITimeUnit.SECONDS]({2024, 1, 1, 0, 0, 0})
+    var d1 = cal.to_delta_since_epoch[SITimeUnit.SECONDS]({2024, 1, 1, 0, 2, 0})
+    var d2 = cal.to_delta_since_epoch[SITimeUnit.SECONDS]({2024, 1, 1, 0, 0, 0})
     assert_equal(120, Int(d1 - d2))
     d1 = cal.to_delta_since_epoch[SITimeUnit.MILLISECONDS](
         {2024, 1, 1, 0, 2, 0, 0}
@@ -455,11 +455,11 @@ def test_seconds_since_epoch() raises:
 
     var unix_seconds = UInt64(253402300799)
 
-    is_positive, seconds = PythonCalendar.to_delta_since_unix_epoch[
+    var is_positive, unix_delta = PythonCalendar.to_delta_since_unix_epoch[
         SITimeUnit.SECONDS
     ](dt)
     assert_true(is_positive)
-    assert_equal(seconds, unix_seconds + leapsecs)
+    assert_equal(unix_delta, unix_seconds + leapsecs)
 
     seconds = UTCCalendar.to_delta_since_epoch[SITimeUnit.SECONDS](dt)
     assert_equal(seconds, unix_seconds + leapsecs)

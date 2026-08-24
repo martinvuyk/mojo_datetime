@@ -13,8 +13,6 @@
 """`TimeZone` module."""
 
 from std.builtin.globals import global_constant
-from std.sys.intrinsics import _type_is_eq
-
 from .zoneinfo import Offset, UTCZoneInfo, ZoneInfo, TzDT, gregorian_zoneinfo
 
 comptime TZ_UTC = TimeZone()
@@ -119,7 +117,7 @@ struct TimeZone[zone_info_type: UTCZoneInfo = ZoneInfo](
         Returns:
             Bool.
         """
-        comptime if _type_is_eq[self.zone_info_type, other.zone_info_type]():
+        comptime if self.zone_info_type == other.zone_info_type:
             return self.zone_info == rebind[self.zone_info_type](
                 other.zone_info
             )

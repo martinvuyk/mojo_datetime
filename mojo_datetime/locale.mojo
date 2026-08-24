@@ -110,9 +110,9 @@ struct FormatCode(Equatable):
         comptime val = type_of(value)()
         comptime assert 1 <= val.byte_length() <= 2
         comptime if val.byte_length() == 1:
-            self.value = {value.unsafe_ptr().load[1](), 0}
+            self.value = {value.ptr().unsafe_load[1](), 0}
         else:
-            self.value = value.unsafe_ptr().load[2]()
+            self.value = value.ptr().unsafe_load[2]()
 
 
 # ===----------------------------------------------------------------------=== #
@@ -172,7 +172,8 @@ struct _DTSpecIterator[mut: Bool, //, origin: Origin[mut=mut]](
             var value = self._slice
             self._slice = {
                 unsafe_from_utf8 = Span(
-                    ptr=self._slice.unsafe_ptr() + length, length=0
+                    unsafe_ptr=self._slice.unsafe_ptr().unsafe_offset(length),
+                    length=0,
                 )
             }
             return (False, value)
@@ -181,11 +182,14 @@ struct _DTSpecIterator[mut: Bool, //, origin: Origin[mut=mut]](
         elif idx == 0 and self._slice.byte_length() > 2:
             # if we ever want to add O, or E or whatever
             comptime extension_chars = Byte(ord(":"))
-            var end = 2 + Int(self._slice.unsafe_ptr()[1] in extension_chars)
+            var end = 2 + Int(
+                self._slice.unsafe_ptr()[unsafe_offset=1] in extension_chars
+            )
             var value = self._slice[byte=1:end]
             self._slice = {
                 unsafe_from_utf8 = Span(
-                    ptr=self._slice.unsafe_ptr() + end, length=length - end
+                    unsafe_ptr=self._slice.unsafe_ptr().unsafe_offset(end),
+                    length=length - end,
                 )
             }
             return True, value
@@ -193,7 +197,8 @@ struct _DTSpecIterator[mut: Bool, //, origin: Origin[mut=mut]](
             var value = self._slice[byte=1:2]
             self._slice = {
                 unsafe_from_utf8 = Span(
-                    ptr=self._slice.unsafe_ptr() + 2, length=length - 2
+                    unsafe_ptr=self._slice.unsafe_ptr().unsafe_offset(2),
+                    length=length - 2,
                 )
             }
             return True, value
@@ -201,7 +206,8 @@ struct _DTSpecIterator[mut: Bool, //, origin: Origin[mut=mut]](
             var value = self._slice[byte=:idx]
             self._slice = {
                 unsafe_from_utf8 = Span(
-                    ptr=self._slice.unsafe_ptr() + idx, length=length - idx
+                    unsafe_ptr=self._slice.unsafe_ptr().unsafe_offset(idx),
+                    length=length - idx,
                 )
             }
             return False, value
@@ -225,7 +231,7 @@ struct DTFormatSpecParsingError(TrivialRegisterPassable, Writable):
         writer.write("DTFormatSpecParsingError")
 
 
-trait DTLocale(Copyable, Defaultable, ImplicitlyDeletable):
+trait DTLocale(Copyable, Defaultable, Deinitable):
     """A trait to provide a locale that helps in stringifying values with
     region-specific characteristics."""
 
@@ -449,9 +455,7 @@ comptime _DAY_1 = _get_flag["DAY_1", _LINUX_TIME_BASE + 7, 7]()
 comptime _ABMON_1 = _get_flag["ABMON_1", _LINUX_TIME_BASE + 14, 33]()
 comptime _MON_1 = _get_flag["MON_1", _LINUX_TIME_BASE + 26, 21]()
 
-comptime _posix_days[calendar: Calendar]: InlineArray[
-    DayOfWeek[calendar], 7
-] = [
+comptime _posix_days[calendar: Calendar]: Array[DayOfWeek[calendar], 7] = [
     DayOfWeek[calendar].SUNDAY,
     DayOfWeek[calendar].MONDAY,
     DayOfWeek[calendar].TUESDAY,
@@ -481,7 +485,7 @@ struct LibCLocale(DTLocale):
         var null_ptr = Self._ptr()
         var name = locale_name.as_c_string_slice()
         self._loc = external_call["newlocale", Self._ptr](
-            _LC_TIME_MASK, name.unsafe_ptr(), null_ptr
+            _LC_TIME_MASK, name.ptr(), null_ptr
         )
         if self._loc == null_ptr:
             raise Error(
@@ -506,7 +510,7 @@ struct LibCLocale(DTLocale):
         if self._loc == {}:
             abort(t"Failed to duplicate locale. ErrNo: {get_errno()}")
 
-    def __del__(deinit self):
+    def __deinit__(deinit self):
         """Frees the reference to self."""
         external_call["freelocale", NoneType](self._loc)
 
@@ -529,7 +533,7 @@ struct LibCLocale(DTLocale):
         [Reference](https://man7.org/linux/man-pages/man3/nl_langinfo.3.html).
         """
         var c_str = external_call[
-            "nl_langinfo_l", UnsafePointer[c_char, ImmutAnyOrigin]
+            "nl_langinfo_l", Pointer[c_char, ImmutAnyOrigin]
         ](item, self._loc)
         return StringSlice(unsafe_from_utf8={unsafe_from_ptr = c_str})
 
@@ -771,7 +775,7 @@ struct LibCLocale(DTLocale):
 # Mojo Native Locales
 # ===----------------------------------------------------------------------=== #
 
-comptime _days[calendar: Calendar]: InlineArray[DayOfWeek[calendar], 7] = [
+comptime _days[calendar: Calendar]: Array[DayOfWeek[calendar], 7] = [
     DayOfWeek[calendar].MONDAY,
     DayOfWeek[calendar].TUESDAY,
     DayOfWeek[calendar].WEDNESDAY,
@@ -787,11 +791,11 @@ trait NativeDTLocale(DTLocale):
     locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Satday",
         "Sunday"
     ]
@@ -1115,11 +1119,11 @@ struct SpanishDTLocale(NativeDTLocale):
     """A default Spanish speaking locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"
     ]
     """Names for the days of the week starting on monday."""
@@ -1145,11 +1149,11 @@ struct FrenchDTLocale(NativeDTLocale):
     """A default French speaking locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"
     ]
     """Names for the days of the week starting on monday."""
@@ -1175,11 +1179,11 @@ struct PortugueseDTLocale(NativeDTLocale):
     """A default Portuguese speaking locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", 
         "Sexta-feira", "Sábado", "Domingo"
     ]
@@ -1206,11 +1210,11 @@ struct ChineseDTLocale(NativeDTLocale):
     """A default Mandarin Chinese locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "周一", "周二", "周三", "周四", "周五", "周六", "周日"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"
     ]
     """Names for the days of the week starting on monday."""
@@ -1244,11 +1248,11 @@ struct JapaneseDTLocale(NativeDTLocale):
     """A default Japanese locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "月", "火", "水", "木", "金", "土", "日"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日"
     ]
     """Names for the days of the week starting on monday."""
@@ -1282,11 +1286,11 @@ struct RussianDTLocale(NativeDTLocale):
     """A default Russian locale favoring format-context (genitive) months."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота",
         "Воскресенье",
     ]
@@ -1319,11 +1323,11 @@ struct HindiDTLocale(NativeDTLocale):
     """A default Hindi locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "सोम", "मंगल", "बुध", "गुरु", "शुक्र", "शनि", "रवि"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "सोमवार", "मंगलवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार", "रविवार"
     ]
     """Names for the days of the week starting on monday."""
@@ -1352,11 +1356,11 @@ struct ArabicDTLocale(NativeDTLocale):
     """A default Arabic locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت", "الأحد"
     ]
     """Names for the days of the week starting on monday."""
@@ -1386,11 +1390,11 @@ struct BengaliDTLocale(NativeDTLocale):
     """A default Bengali locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "সোম", "মঙ্গল", "বুধ", "বৃহস্পতি", "শুক্র", "শনি", "রবি"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "সোমবার", "মঙ্গলবার", "বুধবার", "বৃহস্পতিবার", "শুক্রবার", "শনিবার", "রবিবার"
     ]
     """Names for the days of the week starting on monday."""
@@ -1420,11 +1424,11 @@ struct GermanDTLocale(NativeDTLocale):
     """A default German locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", 
         "Sonntag"
     ]
@@ -1459,11 +1463,11 @@ struct KoreanDTLocale(NativeDTLocale):
     """A default Korean locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "월", "화", "수", "목", "금", "토", "일"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"
     ]
     """Names for the days of the week starting on monday."""
@@ -1497,11 +1501,11 @@ struct IndonesianDTLocale(NativeDTLocale):
     """A default Indonesian locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"
     ]
     """Names for the days of the week starting on monday."""
@@ -1529,11 +1533,11 @@ struct ItalianDTLocale(NativeDTLocale):
     """A default Italian locale."""
 
     # fmt: off
-    comptime day_of_week_names_short: InlineArray[String, 7] = [
+    comptime day_of_week_names_short: Array[String, 7] = [
         "Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"
     ]
     """Names for the days of the week starting on monday."""
-    comptime day_of_week_names_long: InlineArray[String, 7] = [
+    comptime day_of_week_names_long: Array[String, 7] = [
         "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato", 
         "Domenica"
     ]
@@ -1563,7 +1567,7 @@ struct ItalianDTLocale(NativeDTLocale):
 
 
 # fmt: off
-comptime _allowed_specs_start: InlineArray[Byte, 25] = [
+comptime _allowed_specs_start: Array[Byte, 25] = [
     Byte(ord("w")), Byte(ord("d")), Byte(ord("m")), Byte(ord("y")),
     Byte(ord("Y")), Byte(ord("H")), Byte(ord("I")), Byte(ord("M")),
     Byte(ord("S")), Byte(ord("f")), Byte(ord("z")), Byte(ord("Z")),
@@ -1587,14 +1591,16 @@ def _is_valid_spec(spec: StringSlice[mut=False, _]) -> Tuple[Bool, String]:
                 continue
             try:
                 var next_char = next(sl_iter)
-                var b0 = next_char.unsafe_ptr()[0]
-                if b0 not in _allowed_specs_start:
+                var b0 = next_char.unsafe_ptr()[unsafe_offset=0]
+                if b0 not in materialize[_allowed_specs_start]():
                     return False, String(
                         "Unsupported format code: %", next_char
                     )
                 if b0 == Byte(ord(":")):
-                    next_char2 = next(sl_iter)
-                    if next_char2.unsafe_ptr()[0] != Byte(ord("z")):
+                    var next_char2 = next(sl_iter)
+                    if next_char2.unsafe_ptr()[unsafe_offset=0] != Byte(
+                        ord("z")
+                    ):
                         return False, String(
                             "Unsupported format code: %", next_char, next_char2
                         )
@@ -1612,12 +1618,12 @@ def _write_int_base_10[
     comptime `0` = 0x30
     comptime `-` = 0x2D
     comptime assert pad.byte_length() == 1
-    comptime pad_byte = pad.unsafe_ptr()[0]
+    comptime pad_byte = pad.unsafe_ptr()[unsafe_offset=0]
 
     comptime dtype = _uint_type_of_width[bit_width_of[decimal.dtype]()]()
 
     var buf = SIMD[DType.uint8, bit_width_of[dtype]()]()
-    var ptr = UnsafePointer(to=buf).bitcast[Byte]()
+    var ptr = Pointer(to=buf).unsafe_bitcast[Byte]()
 
     var remainder: Scalar[dtype]
     comptime if decimal.dtype.is_signed():
@@ -1627,23 +1633,27 @@ def _write_int_base_10[
 
     var i = 0
     while i == 0 or remainder > 0:
-        ptr[buf.size - (i + 1)] = `0` | UInt8(remainder % 10)
+        ptr[unsafe_offset=Int(buf.length) - (i + 1)] = `0` | UInt8(
+            remainder % 10
+        )
         remainder //= 10
         i += 1
 
     comptime if decimal.dtype.is_signed():
-        ptr[buf.size - (i + 1)] = `-`
+        ptr[unsafe_offset=Int(buf.length) - (i + 1)] = `-`
         i += Int(decimal < 0)
 
     comptime if pad_width > 1:
         while pad_width > i:
-            ptr[buf.size - (i + 1)] = pad_byte
+            ptr[unsafe_offset=Int(buf.length) - (i + 1)] = pad_byte
             i += 1
 
     writer.write_string(
         {
             unsafe_from_utf8 = Span(
-                ptr=UnsafePointer(to=buf).bitcast[Byte]() + buf.size - i,
+                unsafe_ptr=Pointer(to=buf)
+                .unsafe_bitcast[Byte]()
+                .unsafe_offset(Int(buf.length) - i),
                 length=i,
             )
         }
@@ -1651,7 +1661,7 @@ def _write_int_base_10[
 
 
 def _write_to[
-    origin: ImmutOrigin, //, tz_str: String
+    origin: ImmOrigin, //, tz_str: String
 ](
     spec: StringSlice[origin],
     mut writer: Some[Writer],
@@ -1667,7 +1677,7 @@ def _write_to[
             s.write_to(writer)
             continue
 
-        var c = s.unsafe_ptr()[0]
+        var c = s.unsafe_ptr()[unsafe_offset=0]
         if c == FormatCode.w.value[0]:
             writer.write(dt.calendar.day_of_week(dt.dt))
         elif c == FormatCode.d.value[0]:
@@ -1746,10 +1756,10 @@ def _write_to[
 
     comptime for is_spec, s in _DTSpecIterator(spec):
         comptime if not is_spec:
-            writer.write(s)
+            writer.write(materialize[s]())
             continue
 
-        comptime c = s.unsafe_ptr()[0]
+        comptime c = s.unsafe_ptr()[unsafe_offset=0]
         comptime if c == FormatCode.w.value[0]:
             writer.write(dt.calendar.day_of_week(dt.dt))
         elif c == FormatCode.d.value[0]:
@@ -1806,7 +1816,7 @@ def _write_to[
             @always_inline
             def write_to[
                 fmt_str: String
-            ]() {mut writer, read dt, read offset, read loc}:
+            ]() {mut writer, imm dt, imm offset, imm loc}:
                 _write_to[fmt_str, tz_str, locale_t](writer, dt, offset)
 
             comptime loc_t = type_of(locale_t())
@@ -1846,18 +1856,19 @@ def _write_to_iso[
     @always_inline
     def vec[
         *Ts: type_of(Byte)
-    ](*args: *Ts, out res: SIMD[DType.uint8, next_power_of_two(Ts.size)]):
+    ](*args: *Ts, out res: SIMD[DType.uint8, next_power_of_two(Ts.length)]):
         res = {}
-        comptime for i in range(Ts.size):
+        comptime for i in range(Ts.length):
             res[i] = args[i]
 
     @always_inline
     def to_str(
-        ref vec: SIMD[DType.uint8, _], length: Int = vec.size
+        ref vec: SIMD[DType.uint8, _], length: Int = Int(vec.length)
     ) -> StringSlice[origin_of(vec)]:
         return {
             unsafe_from_utf8 = Span(
-                ptr=UnsafePointer(to=vec).bitcast[Byte](), length=length
+                unsafe_ptr=Pointer(to=vec).unsafe_bitcast[Byte](),
+                length=length,
             )
         }
 
@@ -1971,7 +1982,7 @@ def _slice(
 ) -> type_of(read_from):
     return {
         unsafe_from_utf8 = Span(
-            ptr=read_from.unsafe_ptr() + start,
+            unsafe_ptr=read_from.unsafe_ptr().unsafe_offset(start),
             length=read_from.byte_length() - start,
         )
     }
@@ -1981,7 +1992,9 @@ def _slice(
 def _slice(
     read_from: StringSlice[mut=False, _], *, end: Int
 ) -> type_of(read_from):
-    return {unsafe_from_utf8 = Span(ptr=read_from.unsafe_ptr(), length=end)}
+    return {
+        unsafe_from_utf8 = Span(unsafe_ptr=read_from.unsafe_ptr(), length=end)
+    }
 
 
 def _parse_pure_int[
@@ -1999,7 +2012,7 @@ def _parse_pure_int[
     var i = 0
     while i < end:
         res *= 10
-        var val = ptr[i]
+        var val = ptr[unsafe_offset=i]
         if not (`0` <= val <= `9`):
             raise Error(
                 t"Unexpected character in: '{_slice(read_from, end=end)}'"
@@ -2052,7 +2065,7 @@ def _parse[
                 read_from = _slice(read_from, start=s.byte_length())
             continue
 
-        var c = s.unsafe_ptr()[0]
+        var c = s.unsafe_ptr()[unsafe_offset=0]
         if c == FormatCode.w.value[0]:
             comptime DoW = DayOfWeek[dt.calendar]
             var dow, sl = _parse_num_or_raise[
@@ -2248,12 +2261,13 @@ def _parse[
 
     comptime for is_spec, s in _DTSpecIterator(spec):
         comptime if not is_spec:
-            if read_from.byte_length() < s.byte_length():
+            comptime slen = s.byte_length()
+            if read_from.byte_length() < slen:
                 raise Error("Input string is shorter than the format spec.")
-            read_from = _slice(read_from, start=s.byte_length())
+            read_from = _slice(read_from, start=slen)
             continue
 
-        comptime c = s.unsafe_ptr()[0]
+        comptime c = s.unsafe_ptr()[unsafe_offset=0]
         comptime if c == FormatCode.w.value[0]:
             comptime DoW = DayOfWeek[dt.calendar]
             var dow, sl = _parse_num_or_raise[
@@ -2405,7 +2419,7 @@ def _parse[
         elif conforms_to(locale_t, NativeDTLocale):
 
             @always_inline
-            def parse[fmt_str: String]() raises {mut, read loc}:
+            def parse[fmt_str: String]() raises {mut, imm loc}:
                 _parse[fmt_str, calendar, zone_info_dict, locale_t](
                     read_from,
                     dt,

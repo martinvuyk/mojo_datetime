@@ -49,7 +49,7 @@ struct Offset(Defaultable, Equatable, ImplicitlyCopyable, Writable):
 
         self.is_east_utc = Bool(from_hash >> 7)
         self.hours = (from_hash >> 2) & 0b11111
-        m = from_hash & 0b11
+        var m = from_hash & 0b11
         self.minutes = UInt8(0) if m == 0 else (
             UInt8(30) if m == 1 else (UInt8(45) if m == 2 else 15)
         )
@@ -99,7 +99,7 @@ struct Offset(Defaultable, Equatable, ImplicitlyCopyable, Writable):
             return Offset(), 1
         if iso_tzd_std.byte_length() < 3:
             raise Error("Offset string is too short.")
-        var b0 = iso_tzd_std.unsafe_ptr()[0]
+        var b0 = iso_tzd_std.unsafe_ptr()[unsafe_offset=0]
         comptime signs = SIMD[DType.uint8, 2](Byte(ord("+")), Byte(ord("-")))
         if b0 not in signs:
             raise Error("Offset doesn't start with a sign.")
@@ -108,7 +108,9 @@ struct Offset(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         )
         if iso_tzd_std.byte_length() == 3:
             return offset, 3
-        var idx = 3 + Int(iso_tzd_std.unsafe_ptr()[3] == Byte(ord(":")))
+        var idx = 3 + Int(
+            iso_tzd_std.unsafe_ptr()[unsafe_offset=3] == Byte(ord(":"))
+        )
         var length = idx + 2
         if iso_tzd_std.byte_length() < length:
             raise Error("Offset minute section is too short.")
@@ -144,8 +146,8 @@ struct Offset(Defaultable, Equatable, ImplicitlyCopyable, Writable):
             writer: The writer.
         """
 
-        h = self.hours
-        m = self.minutes
+        var h = self.hours
+        var m = self.minutes
 
         writer.write(
             "-" if not self.is_east_utc and not (h == 0 and m == 0) else "+"
@@ -354,9 +356,7 @@ struct TzDT(Equatable, ImplicitlyCopyable, Writable):
 # ===----------------------------------------------------------------------=== #
 
 
-trait UTCZoneInfo(
-    Defaultable, Equatable, ImplicitlyCopyable, ImplicitlyDeletable
-):
+trait UTCZoneInfo(Defaultable, Deinitable, Equatable, ImplicitlyCopyable):
     """A trait that defines what a struct containing zone info should look
     like."""
 
@@ -471,7 +471,7 @@ struct ZoneInfo(UTCZoneInfo):
     ) -> Tuple[type_of(reference_dt), type_of(reference_dt)]:
         comptime DT = type_of(reference_dt)
 
-        def _datetime_for_rule(var dt: DT, rule: TzDT) {read} -> DT:
+        def _datetime_for_rule(var dt: DT, rule: TzDT) {imm} -> DT:
             var maxdays = dt.calendar.max_days_in_month(dt.dt)
             var iterable = range(0, Int(maxdays), step=1)
             if rule.from_end_of_month:
