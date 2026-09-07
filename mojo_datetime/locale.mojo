@@ -19,7 +19,7 @@ from std.os import abort
 from std.utils import Variant
 from std.ffi import external_call, c_char, get_errno
 from std.sys.info import CompilationTarget, bit_width_of
-from std.format._utils import _WriteBufferStack
+from std.format._utils import _FlushingWriteBuffer
 
 from .zoneinfo import Offset
 from .calendar import _NaiveDateTime, Calendar
@@ -1970,7 +1970,7 @@ def _write_to[
     ]:
         _write_to_iso[spec](writer, dt, offset)
     else:
-        var buf = _WriteBufferStack(writer)
+        var buf = _FlushingWriteBuffer(writer)
         var loc = locale^.or_else({})
         _write_to[spec, tz_str](buf, dt, offset, loc)
         buf.flush()
