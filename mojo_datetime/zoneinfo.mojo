@@ -76,7 +76,7 @@ struct Offset(Defaultable, Equatable, ImplicitlyCopyable, Writable):
         self.is_east_utc = is_east_utc
 
     @staticmethod
-    def parse(iso_tzd_std: StringSlice) raises -> Tuple[Offset, Int]:
+    def parse(iso_tzd_std: StringSpan) raises -> Tuple[Offset, Int]:
         """Construct an `Offset` for DST start/end.
 
         Args:

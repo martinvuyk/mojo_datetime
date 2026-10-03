@@ -151,15 +151,15 @@ struct IsoFormat:
 
 
 @fieldwise_init
-struct _DTSpecIterator[mut: Bool, //, origin: Origin[mut=mut]](
+struct _DTSpecIterator[origin: ImmOrigin](
     ImplicitlyCopyable, Iterable, Iterator
 ):
     comptime IteratorType[
         iterable_mut: Bool, //, iterable_origin: Origin[mut=iterable_mut]
     ]: Iterator = Self
-    comptime Element = Tuple[Bool, StringSlice[Self.origin]]
+    comptime Element = Tuple[Bool, StringSpan[Self.origin]]
 
-    var _slice: StringSlice[Self.origin]
+    var _slice: StringSpan[Self.origin]
 
     def __iter__(ref self) -> Self.IteratorType[origin_of(self)]:
         return self.copy()
@@ -246,9 +246,9 @@ trait DTLocale(Copyable, Defaultable, Deinitable):
 
     def parse_day_of_week_short[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[DayOfWeek[calendar], Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        DayOfWeek[calendar], Int
+    ]:
         """Parse day_of_week as locale's abbreviated name.
 
         Parameters:
@@ -276,9 +276,9 @@ trait DTLocale(Copyable, Defaultable, Deinitable):
 
     def parse_day_of_week_long[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[DayOfWeek[calendar], Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        DayOfWeek[calendar], Int
+    ]:
         """Parse day_of_week as locale's full name.
 
         Parameters:
@@ -306,9 +306,9 @@ trait DTLocale(Copyable, Defaultable, Deinitable):
 
     def parse_month_short[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[UInt8, Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        UInt8, Int
+    ]:
         """Parse month as locale's abbreviated name.
 
         Parameters:
@@ -336,9 +336,9 @@ trait DTLocale(Copyable, Defaultable, Deinitable):
 
     def parse_month_long[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[UInt8, Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        UInt8, Int
+    ]:
         """Parse month as locale's full name.
 
         Parameters:
@@ -366,9 +366,9 @@ trait DTLocale(Copyable, Defaultable, Deinitable):
 
     def parse_am_pm[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[Bool, Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        Bool, Int
+    ]:
         """Parse locale's equivalent of AM or PM.
 
         Parameters:
@@ -483,7 +483,7 @@ struct LibCLocale(DTLocale):
             When failing to instantiate the locale.
         """
         var null_ptr = Self._ptr()
-        var name = locale_name.as_c_string_slice()
+        var name = locale_name.as_c_string_span()
         self._loc = external_call["newlocale", Self._ptr](
             _LC_TIME_MASK, name.ptr(), null_ptr
         )
@@ -515,7 +515,7 @@ struct LibCLocale(DTLocale):
         external_call["freelocale", NoneType](self._loc)
 
     @always_inline
-    def _get_langinfo(self, item: Int32) -> StringSlice[ImmutAnyOrigin]:
+    def _get_langinfo(self, item: Int32) -> StringSpan[ImmutAnyOrigin]:
         """Fetches a locale-specific string given an nl_item.
 
         If item is not valid, a pointer to an empty string is returned.
@@ -535,7 +535,7 @@ struct LibCLocale(DTLocale):
         var c_str = external_call[
             "nl_langinfo_l", Pointer[c_char, ImmutAnyOrigin]
         ](item, self._loc)
-        return StringSlice(unsafe_from_utf8={unsafe_from_ptr = c_str})
+        return StringSpan(unsafe_from_utf8={unsafe_from_ptr = c_str})
 
     def day_of_week_short(self, mut writer: Some[Writer], dt: _TzNaiveDateTime):
         """The day of the week as locale's abbreviated name.
@@ -555,9 +555,9 @@ struct LibCLocale(DTLocale):
 
     def parse_day_of_week_short[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[DayOfWeek[calendar], Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        DayOfWeek[calendar], Int
+    ]:
         """Parse day_of_week as locale's abbreviated name.
 
         Parameters:
@@ -598,9 +598,9 @@ struct LibCLocale(DTLocale):
 
     def parse_day_of_week_long[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[DayOfWeek[calendar], Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        DayOfWeek[calendar], Int
+    ]:
         """Parse day_of_week as locale's full name.
 
         Parameters:
@@ -634,9 +634,9 @@ struct LibCLocale(DTLocale):
 
     def parse_month_short[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[UInt8, Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        UInt8, Int
+    ]:
         """Parse month as locale's abbreviated name.
 
         Parameters:
@@ -669,9 +669,9 @@ struct LibCLocale(DTLocale):
 
     def parse_month_long[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[UInt8, Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        UInt8, Int
+    ]:
         """Parse month as locale's full name.
 
         Parameters:
@@ -706,9 +706,9 @@ struct LibCLocale(DTLocale):
 
     def parse_am_pm[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[Bool, Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        Bool, Int
+    ]:
         """Parse locale's equivalent of AM or PM.
 
         Parameters:
@@ -845,9 +845,9 @@ trait NativeDTLocale(DTLocale):
 
     def parse_day_of_week_short[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[DayOfWeek[calendar], Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        DayOfWeek[calendar], Int
+    ]:
         """Parse day_of_week as locale's abbreviated name.
 
         Parameters:
@@ -890,9 +890,9 @@ trait NativeDTLocale(DTLocale):
 
     def parse_day_of_week_long[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[DayOfWeek[calendar], Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        DayOfWeek[calendar], Int
+    ]:
         """Parse day_of_week as locale's full name.
 
         Parameters:
@@ -939,9 +939,9 @@ trait NativeDTLocale(DTLocale):
 
     def parse_month_short[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[UInt8, Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        UInt8, Int
+    ]:
         """Parse month as locale's abbreviated name.
 
         Parameters:
@@ -991,9 +991,9 @@ trait NativeDTLocale(DTLocale):
 
     def parse_month_long[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[UInt8, Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        UInt8, Int
+    ]:
         """Parse month as locale's full name.
 
         Parameters:
@@ -1033,9 +1033,9 @@ trait NativeDTLocale(DTLocale):
     @always_inline
     def parse_am_pm[
         calendar: Calendar
-    ](
-        self, read_from: StringSlice[mut=False, _]
-    ) raises DTFormatSpecParsingError -> Tuple[Bool, Int]:
+    ](self, read_from: StringSpan) raises DTFormatSpecParsingError -> Tuple[
+        Bool, Int
+    ]:
         """Parse locale's equivalent of AM or PM.
 
         Parameters:
@@ -1580,7 +1580,7 @@ comptime _allowed_specs_start: Array[Byte, 25] = [
 # fmt: on
 
 
-def _is_valid_spec(spec: StringSlice[mut=False, _]) -> Tuple[Bool, String]:
+def _is_valid_spec(spec: StringSpan) -> Tuple[Bool, String]:
     if spec.byte_length() == 0:
         return False, "Empty format specification"
     var sl_iter = spec.codepoint_slices()
@@ -1663,7 +1663,7 @@ def _write_int_base_10[
 def _write_to[
     origin: ImmOrigin, //, tz_str: String
 ](
-    spec: StringSlice[origin],
+    spec: StringSpan[origin],
     mut writer: Some[Writer],
     dt: _TzNaiveDateTime,
     offset: Offset,
@@ -1864,7 +1864,7 @@ def _write_to_iso[
     @always_inline
     def to_str(
         ref vec: SIMD[DType.uint8, _], length: Int = Int(vec.length)
-    ) -> StringSlice[origin_of(vec)]:
+    ) -> StringSpan[origin_of(vec)]:
         return {
             unsafe_from_utf8 = Span(
                 unsafe_ptr=Pointer(to=vec).unsafe_bitcast[Byte](),
@@ -1977,9 +1977,7 @@ def _write_to[
 
 
 @always_inline
-def _slice(
-    read_from: StringSlice[mut=False, _], *, start: Int
-) -> type_of(read_from):
+def _slice(read_from: StringSpan, *, start: Int) -> type_of(read_from):
     return {
         unsafe_from_utf8 = Span(
             unsafe_ptr=read_from.unsafe_ptr().unsafe_offset(start),
@@ -1989,9 +1987,7 @@ def _slice(
 
 
 @always_inline
-def _slice(
-    read_from: StringSlice[mut=False, _], *, end: Int
-) -> type_of(read_from):
+def _slice(read_from: StringSpan, *, end: Int) -> type_of(read_from):
     return {
         unsafe_from_utf8 = Span(unsafe_ptr=read_from.unsafe_ptr(), length=end)
     }
@@ -1999,7 +1995,7 @@ def _slice(
 
 def _parse_pure_int[
     end: Int, dtype: DType
-](read_from: StringSlice[mut=False, _]) raises -> Scalar[dtype]:
+](read_from: StringSpan) raises -> Scalar[dtype]:
     comptime `0` = Byte(ord("0"))
     comptime `9` = Byte(ord("9"))
 
@@ -2028,9 +2024,7 @@ def _parse_num_or_raise[
     min_value: Scalar,
     max_value: type_of(min_value),
     value_str: String,
-](read_from: StringSlice[mut=False, _]) raises -> Tuple[
-    UInt16, type_of(read_from)
-]:
+](read_from: StringSpan) raises -> Tuple[UInt16, type_of(read_from)]:
     comptime v_in = "The value is expected to be in the range"
     var value = _parse_pure_int[end, min_value.dtype](read_from)
     if not (min_value <= value <= max_value):
@@ -2046,7 +2040,7 @@ def _parse[
     locale_t: DTLocale = GenericEnglishDTLocale,
 ](
     spec: String,
-    var read_from: StringSlice[mut=False, _],
+    var read_from: StringSpan,
     mut dt: _TzNaiveDateTime,
     locale: locale_t,
     mut days_to_add: UInt16,
@@ -2248,7 +2242,7 @@ def _parse[
     zone_info_dict: Dict[String, zone_info_t],
     locale_t: DTLocale,
 ](
-    mut read_from: StringSlice[mut=False, _],
+    mut read_from: StringSpan,
     mut dt: _TzNaiveDateTime,
     loc: locale_t,
     mut days_to_add: UInt16,
@@ -2470,7 +2464,7 @@ def _parse[
     zone_info_dict: Dict[String, zone_info_t],
     locale_t: DTLocale,
 ](
-    read_from_in: StringSlice[mut=False, _],
+    read_from_in: StringSpan,
     var locale: Optional[locale_t] = None,
 ) raises -> _TzNaiveDateTime[calendar]:
     comptime validated = _is_valid_spec(spec)

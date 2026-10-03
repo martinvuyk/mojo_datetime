@@ -1045,7 +1045,7 @@ struct DateTime[
         locale_t: DTLocale = GenericEnglishDTLocale,
         zone_info_dict: Dict[String, zone_info_t] = gregorian_zoneinfo,
     ](
-        read_from: StringSlice[mut=False, _],
+        read_from: StringSpan,
         var locale: Optional[locale_t] = None,
     ) raises -> Self:
         """Parse a `DateTime` from a  `String`.
